@@ -1664,54 +1664,176 @@ svg {
 }
 
 .offer-choice {
-  inline-size: 100%;
-  text-align: start;
   cursor: pointer;
-  background: none;
-  color: inherit;
-  font: inherit;
-  border: 1px solid var(--line);
-  padding: clamp(1.25rem, 3vw, 1.75rem);
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .offer-choice:hover,
-.offer-choice.is-selected {
+.offer-choice:has(:checked) {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
 
-.slot-groups {
-  display: grid;
-  gap: 1.75rem;
+.offer-choice:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
-.slot-group h3 {
-  margin-block-end: 0.75rem;
-  text-transform: capitalize;
+.calendar {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--line);
+  background: var(--card);
 }
 
-.slot-grid {
+.calendar-bar {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-block-end: 1.25rem;
+}
+
+.calendar-bar h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.calendar-bar p {
+  margin-block: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.calendar-nav {
+  display: flex;
   gap: 0.5rem;
 }
 
-.slot-button {
-  min-inline-size: 5rem;
-  padding: 0.55rem 0.85rem;
+.calendar-nav-button {
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
   border: 1px solid var(--line);
   background: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition: border-color 150ms ease;
 }
 
-.slot-button:hover,
-.slot-button.is-selected {
+.calendar-nav-button:hover:not(:disabled) {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.calendar-nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.calendar-day {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.75rem 0.35rem;
+  border: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.calendar-day:hover {
+  border-color: var(--accent);
+}
+
+.calendar-day[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.calendar-weekday {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.calendar-date {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+}
+
+.calendar-count {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.calendar-panel {
+  margin-block-start: 1.5rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.calendar-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.calendar-panel-head h4 {
+  margin: 0;
+}
+
+.calendar-panel-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.calendar-times {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 0.5rem;
+  margin-block-start: 1rem;
+}
+
+.time-button {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.time-button small {
+  color: var(--muted);
+}
+
+.time-button:hover {
+  border-color: var(--accent);
+}
+
+.time-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.selection-summary {
+  margin-block: 1rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .booking-actions {

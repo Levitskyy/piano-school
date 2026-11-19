@@ -80,3 +80,18 @@ export function formatSlotTime(value: string, timeZone: string): string {
     minute: "2-digit",
   }).format(new Date(value));
 }
+
+export function formatCalendarWeekday(value: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("ru-RU", {
+    timeZone,
+    weekday: "short",
+  }).format(new Date(value));
+}
+
+export function formatCalendarDate(value: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("ru-RU", {
+    timeZone,
+    day: "numeric",
+    month: "short",
+  }).format(new Date(value));
+}
