@@ -95,8 +95,17 @@ export default async function AccountIndividualLessonsPage() {
                   <h3>{item.offer_title}</h3>
                   <p>{formatSlotDateTime(item.starts_at, user.timezone)}</p>
                   {item.meeting_url ? (
-                    <a href={item.meeting_url} target="_blank" rel="noreferrer">
-                      Ссылка на встречу
+                    <a
+                      className="button button-small meeting-link"
+                      href={item.meeting_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Открыть встречу
+                      <span aria-hidden="true">↗</span>
+                      <span className="visually-hidden">
+                        (открывается в новой вкладке)
+                      </span>
                     </a>
                   ) : (
                     <p className="body-text">

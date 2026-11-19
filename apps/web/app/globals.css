@@ -1956,6 +1956,11 @@ svg {
   min-block-size: 2.75rem;
 }
 
+.meeting-link {
+  gap: 0.5rem;
+  margin-block-start: 0.85rem;
+}
+
 .status-pill {
   display: inline-block;
   padding: 0.2rem 0.6rem;
