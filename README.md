@@ -100,6 +100,8 @@ docker compose -f infra/docker-compose.yml up --build
 | `make revision m="..."` | Создать миграцию по моделям |
 | `make role email=... role=...` | Назначить роль пользователю |
 | `make seed-demo` | Создать демонстрационный курс |
+| `make seed-lessons` | Создать тарифы индивидуальных занятий (1/4/8 уроков) |
+| `make seed-slots days=30` | Создать свободные слоты расписания |
 | `make grant-access email=... course=... offer=...` | Вручную выдать доступ к курсу |
 | `make lint` | Ruff + ESLint |
 | `make test` | pytest |

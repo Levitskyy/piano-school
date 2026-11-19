@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev-stack dev-api dev-web dev-web-lan lan db-up db-down migrate revision role grant-access seed-demo lint test check
+.PHONY: help install dev-stack dev-api dev-web dev-web-lan lan db-up db-down migrate revision role grant-access seed-demo seed-lessons seed-slots lint test check
 
 help:
 	@echo "install      — установить зависимости web и api"
@@ -16,6 +16,8 @@ help:
 	@echo "role         — сменить роль: make role email=... role=admin"
 	@echo "grant-access — выдать курс: make grant-access email=... course=... offer=..."
 	@echo "seed-demo    — создать демонстрационный курс"
+	@echo "seed-lessons — создать тарифы индивидуальных занятий"
+	@echo "seed-slots   — создать свободные слоты: make seed-slots days=30"
 	@echo "lint         — Ruff + ESLint"
 	@echo "test         — pytest"
 	@echo "check        — lint + test + typecheck"
@@ -59,6 +61,12 @@ grant-access:
 
 seed-demo:
 	cd apps/api && uv run python -m app.manage seed-demo-course
+
+seed-lessons:
+	cd apps/api && uv run python -m app.manage seed-individual-lessons
+
+seed-slots:
+	cd apps/api && uv run python -m app.manage seed-lesson-slots --days "$(or $(days),30)"
 
 lint:
 	cd apps/api && uv run ruff check .

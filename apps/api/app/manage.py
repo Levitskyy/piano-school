@@ -2,7 +2,8 @@
 
 import argparse
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
@@ -18,6 +19,12 @@ from app.models.course import (
     OfferKind,
     VideoStatus,
 )
+from app.models.individual_lessons import (
+    IndividualLessonOffer,
+    IndividualLessonOfferKind,
+    LessonSlot,
+    LessonSlotStatus,
+)
 from app.models.user import User, UserRole
 from app.services.auth import normalize_email
 
@@ -29,9 +36,7 @@ async def set_role(email: str, role: str) -> None:
         raise SystemExit(f"Неизвестная роль: {role}")
 
     async with SessionLocal() as session:
-        user = await session.scalar(
-            select(User).where(User.email == normalize_email(email))
-        )
+        user = await session.scalar(select(User).where(User.email == normalize_email(email)))
         if user is None:
             raise SystemExit(f"Пользователь не найден: {email}")
 
@@ -42,15 +47,11 @@ async def set_role(email: str, role: str) -> None:
 
 async def grant_access(email: str, course_slug: str, offer_slug: str) -> None:
     async with SessionLocal() as session:
-        user = await session.scalar(
-            select(User).where(User.email == normalize_email(email))
-        )
+        user = await session.scalar(select(User).where(User.email == normalize_email(email)))
         if user is None:
             raise SystemExit(f"Пользователь не найден: {email}")
 
-        course = await session.scalar(
-            select(Course).where(Course.slug == course_slug)
-        )
+        course = await session.scalar(select(Course).where(Course.slug == course_slug))
         if course is None:
             raise SystemExit(f"Курс не найден: {course_slug}")
 
@@ -71,9 +72,7 @@ async def grant_access(email: str, course_slug: str, offer_slug: str) -> None:
             source="manual",
             starts_at=now,
             mentorship_ends_at=(
-                now + timedelta(days=offer.mentorship_days)
-                if offer.mentorship_days
-                else None
+                now + timedelta(days=offer.mentorship_days) if offer.mentorship_days else None
             ),
         )
         session.add(access)
@@ -83,9 +82,7 @@ async def grant_access(email: str, course_slug: str, offer_slug: str) -> None:
 
 async def seed_demo_course() -> None:
     async with SessionLocal() as session:
-        existing = await session.scalar(
-            select(Course).where(Course.slug == DEMO_COURSE_SLUG)
-        )
+        existing = await session.scalar(select(Course).where(Course.slug == DEMO_COURSE_SLUG))
         if existing is not None:
             print(f"Курс уже существует: {existing.slug}")
             return
@@ -187,6 +184,92 @@ async def seed_demo_course() -> None:
         print(f"Создан демонстрационный курс: {course.slug}")
 
 
+async def seed_individual_lesson_offers() -> None:
+    offers = [
+        IndividualLessonOffer(
+            slug="single",
+            title="Разовый урок",
+            description=(
+                "Одно индивидуальное занятие 60 минут. Удобный слот выбирается "
+                "при покупке, ссылка на встречу добавляется преподавателем вручную."
+            ),
+            kind=IndividualLessonOfferKind.SINGLE.value,
+            lessons_count=1,
+            duration_minutes=60,
+            position=0,
+        ),
+        IndividualLessonOffer(
+            slug="package-4",
+            title="Пакет из 4 уроков",
+            description=(
+                "Четыре индивидуальных занятия по 60 минут. Первый слот выбирается "
+                "при покупке, остальные — из остатка пакета в кабинете."
+            ),
+            kind=IndividualLessonOfferKind.PACKAGE.value,
+            lessons_count=4,
+            duration_minutes=60,
+            validity_days=180,
+            position=1,
+        ),
+        IndividualLessonOffer(
+            slug="package-8",
+            title="Пакет из 8 уроков",
+            description=(
+                "Восемь индивидуальных занятий по 60 минут. Записывайтесь на слоты "
+                "по мере использования пакета."
+            ),
+            kind=IndividualLessonOfferKind.PACKAGE.value,
+            lessons_count=8,
+            duration_minutes=60,
+            validity_days=365,
+            position=2,
+        ),
+    ]
+
+    async with SessionLocal() as session:
+        created = 0
+        for candidate in offers:
+            existing = await session.scalar(
+                select(IndividualLessonOffer).where(IndividualLessonOffer.slug == candidate.slug)
+            )
+            if existing is None:
+                session.add(candidate)
+                created += 1
+        await session.commit()
+        print(f"Создано тарифов индивидуальных занятий: {created}")
+
+
+async def seed_lesson_slots(days: int = 30) -> None:
+    teacher_tz = ZoneInfo("Europe/Moscow")
+    now = datetime.now(UTC)
+    slots: list[LessonSlot] = []
+
+    for day_offset in range(1, days + 1):
+        date = (now + timedelta(days=day_offset)).astimezone(teacher_tz).date()
+        if date.weekday() == 6:
+            continue
+        for hour in range(10, 19):
+            start_local = datetime.combine(date, time(hour=hour), tzinfo=teacher_tz)
+            start_utc = start_local.astimezone(UTC)
+            if start_utc <= now:
+                continue
+            slots.append(
+                LessonSlot(
+                    starts_at=start_utc,
+                    ends_at=start_utc + timedelta(minutes=60),
+                    duration_minutes=60,
+                    status=LessonSlotStatus.FREE.value,
+                )
+            )
+
+    async with SessionLocal() as session:
+        existing = set((await session.scalars(select(LessonSlot.starts_at))).all())
+        new_slots = [slot for slot in slots if slot.starts_at not in existing]
+        session.add_all(new_slots)
+        await session.commit()
+        print(f"Создано слотов: {len(new_slots)}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Piano School management commands")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -195,14 +278,17 @@ def main() -> None:
     role_parser.add_argument("--email", required=True)
     role_parser.add_argument("--role", required=True, choices=[r.value for r in UserRole])
 
-    access_parser = subparsers.add_parser(
-        "grant-access", help="Выдать доступ к курсу вручную"
-    )
+    access_parser = subparsers.add_parser("grant-access", help="Выдать доступ к курсу вручную")
     access_parser.add_argument("--email", required=True)
     access_parser.add_argument("--course", required=True)
     access_parser.add_argument("--offer", required=True)
 
     subparsers.add_parser("seed-demo-course", help="Создать демонстрационный курс")
+    subparsers.add_parser("seed-individual-lessons", help="Создать тарифы индивидуальных занятий")
+    slots_parser = subparsers.add_parser(
+        "seed-lesson-slots", help="Создать свободные слоты расписания"
+    )
+    slots_parser.add_argument("--days", type=int, default=30)
 
     args = parser.parse_args()
     if args.command == "set-role":
@@ -211,6 +297,10 @@ def main() -> None:
         asyncio.run(grant_access(args.email, args.course, args.offer))
     elif args.command == "seed-demo-course":
         asyncio.run(seed_demo_course())
+    elif args.command == "seed-individual-lessons":
+        asyncio.run(seed_individual_lesson_offers())
+    elif args.command == "seed-lesson-slots":
+        asyncio.run(seed_lesson_slots(args.days))
 
 
 if __name__ == "__main__":

@@ -15,6 +15,16 @@ from app.models.course import (
     ProgressStatus,
     VideoStatus,
 )
+from app.models.individual_lessons import (
+    IndividualLessonOffer,
+    IndividualLessonOfferKind,
+    LessonBooking,
+    LessonBookingStatus,
+    LessonPackage,
+    LessonPackageStatus,
+    LessonSlot,
+    LessonSlotStatus,
+)
 from app.models.session import PasswordResetToken, UserSession
 from app.models.user import StudentProfile, User, UserRole
 
@@ -26,9 +36,17 @@ __all__ = [
     "CourseModule",
     "CourseOffer",
     "CourseStatus",
+    "IndividualLessonOffer",
+    "IndividualLessonOfferKind",
     "Lesson",
+    "LessonBooking",
+    "LessonBookingStatus",
     "LessonMaterial",
+    "LessonPackage",
+    "LessonPackageStatus",
     "LessonProgress",
+    "LessonSlot",
+    "LessonSlotStatus",
     "LessonStatus",
     "MaterialKind",
     "OfferKind",

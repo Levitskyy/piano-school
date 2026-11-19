@@ -9,6 +9,7 @@ export const site = {
 
 export const navigation = [
   { label: "Форматы", href: "/#formats" },
+  { label: "Индивидуальные занятия", href: "/individual-lessons" },
   { label: "Программа", href: "/#program" },
   { label: "О преподавателе", href: "/#about" },
   { label: "Вопросы", href: "/#faq" },
