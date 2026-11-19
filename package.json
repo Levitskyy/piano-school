@@ -1,0 +1,16 @@
+{
+  "name": "piano-school",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:lan": "pnpm --filter web dev:lan",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter web typecheck"
+  }
+}

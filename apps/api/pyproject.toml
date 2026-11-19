@@ -1,0 +1,50 @@
+[project]
+name = "piano-school-api"
+version = "0.1.0"
+description = "Backend API для сайта Piano School"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20,<2",
+    "argon2-cffi>=25,<26",
+    "arq>=0.28,<0.29",
+    "asyncpg>=0.32,<0.33",
+    "email-validator>=2.3,<3",
+    "fastapi>=0.163,<0.164",
+    "httpx>=0.28,<0.29",
+    "pydantic-settings>=2.16,<3",
+    "python-multipart>=0.0.20",
+    "redis[hiredis]>=5.3,<6",
+    "sqlalchemy[asyncio]>=2.1,<2.2",
+    "tzdata>=2025.2",
+    "uvicorn[standard]>=0.54,<0.55",
+]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.21,<0.22",
+    "pytest>=9.2,<10",
+    "pytest-asyncio>=1.5,<2",
+    "ruff>=0.17,<0.18",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["app", "tests"]
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]
