@@ -22,6 +22,7 @@ type IndividualLessonBookingProps = {
   packages: LessonPackage[];
   isAuthenticated: boolean;
   bookingPackage?: LessonPackage | null;
+  timeZoneOverride?: string | null;
 };
 
 type SlotGroup = {
@@ -41,13 +42,15 @@ export function IndividualLessonBooking({
   packages,
   isAuthenticated,
   bookingPackage = null,
+  timeZoneOverride = null,
 }: IndividualLessonBookingProps) {
   const router = useRouter();
-  const timeZone = useSyncExternalStore(
+  const browserTimeZone = useSyncExternalStore(
     () => () => {},
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     () => "UTC",
   );
+  const timeZone = timeZoneOverride || browserTimeZone;
   const [offerId, setOfferId] = useState(offers[0]?.id ?? "");
   const [slotId, setSlotId] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
@@ -196,6 +199,9 @@ export function IndividualLessonBooking({
             <p>
               Время показано в вашем часовом поясе ({timeZone}). Слоты свободны на
               ближайшие 60 дней.
+              {isAuthenticated
+                ? " Дни, на которые вы уже записаны, скрыты."
+                : ""}
             </p>
           </div>
         </div>

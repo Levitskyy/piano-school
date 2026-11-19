@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -28,6 +29,17 @@ SLOT_LOOKAHEAD_DAYS = 60
 
 def as_utc(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+def user_timezone(user: User) -> tzinfo:
+    try:
+        return ZoneInfo(user.timezone)
+    except (ZoneInfoNotFoundError, ValueError):
+        return UTC
+
+
+def local_day_key(value: datetime, tz: tzinfo) -> str:
+    return as_utc(value).astimezone(tz).date().isoformat()
 
 
 class SlotUnavailableError(Exception):
@@ -88,6 +100,21 @@ def booking_out_data(booking: LessonBooking) -> LessonBookingOut:
     )
 
 
+async def booked_day_keys(session: AsyncSession, user: User) -> set[str]:
+    result = await session.scalars(
+        select(LessonSlot.starts_at)
+        .join(LessonBooking, LessonBooking.slot_id == LessonSlot.id)
+        .where(
+            LessonBooking.user_id == user.id,
+            LessonBooking.status.in_(
+                [LessonBookingStatus.CONFIRMED.value, LessonBookingStatus.COMPLETED.value]
+            ),
+        )
+    )
+    tz = user_timezone(user)
+    return {local_day_key(starts_at, tz) for starts_at in result.all()}
+
+
 async def list_offers(session: AsyncSession) -> list[dict]:
     result = await session.scalars(
         select(IndividualLessonOffer)
@@ -97,7 +124,9 @@ async def list_offers(session: AsyncSession) -> list[dict]:
     return [offer_out_data(offer) for offer in result.all()]
 
 
-async def list_free_slots(session: AsyncSession) -> list[dict]:
+async def list_free_slots(
+    session: AsyncSession, user: User | None = None
+) -> list[dict]:
     now = datetime.now(UTC)
     until = now + timedelta(days=SLOT_LOOKAHEAD_DAYS)
     result = await session.scalars(
@@ -109,7 +138,30 @@ async def list_free_slots(session: AsyncSession) -> list[dict]:
         )
         .order_by(LessonSlot.starts_at)
     )
-    return [slot_out_data(slot) for slot in result.all()]
+    slots = result.all()
+    if user is not None:
+        booked_days = await booked_day_keys(session, user)
+        tz = user_timezone(user)
+        slots = [
+            slot
+            for slot in slots
+            if local_day_key(slot.starts_at, tz) not in booked_days
+        ]
+    return [slot_out_data(slot) for slot in slots]
+
+
+async def _lock_user(session: AsyncSession, user_id) -> None:
+    await session.scalar(select(User).where(User.id == user_id).with_for_update())
+
+
+async def _ensure_no_booking_on_day(
+    session: AsyncSession, user: User, slot: LessonSlot
+) -> None:
+    booked_days = await booked_day_keys(session, user)
+    if local_day_key(slot.starts_at, user_timezone(user)) in booked_days:
+        raise SlotUnavailableError(
+            "На этот день у вас уже есть занятие. Выберите следующий день."
+        )
 
 
 async def _get_free_slot(session: AsyncSession, slot_id) -> LessonSlot:
@@ -165,7 +217,9 @@ async def purchase_and_book(
     if offer is None:
         raise LookupError("Тариф не найден")
 
+    await _lock_user(session, user.id)
     slot = await _get_free_slot(session, slot_id)
+    await _ensure_no_booking_on_day(session, user, slot)
     if slot.duration_minutes != offer.duration_minutes:
         raise SlotUnavailableError("Длительность слота не соответствует тарифу")
 
@@ -216,7 +270,9 @@ async def book_from_package(
         await session.commit()
         raise PackageUnavailableError("Срок действия пакета истёк")
 
+    await _lock_user(session, user.id)
     slot = await _get_free_slot(session, slot_id)
+    await _ensure_no_booking_on_day(session, user, slot)
     if slot.duration_minutes != package.offer.duration_minutes:
         raise SlotUnavailableError("Длительность слота не соответствует тарифу")
 

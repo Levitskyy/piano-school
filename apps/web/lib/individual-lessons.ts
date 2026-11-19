@@ -21,9 +21,7 @@ export async function getIndividualLessonOffers(): Promise<IndividualLessonOffer
 
 export async function getFreeLessonSlots(): Promise<LessonSlot[]> {
   try {
-    const response = await fetch(`${API_URL}/individual-lessons/slots`, {
-      cache: "no-store",
-    });
+    const response = await fetchWithSession("/individual-lessons/slots");
     if (!response.ok) return [];
     return (await response.json()) as LessonSlot[];
   } catch {

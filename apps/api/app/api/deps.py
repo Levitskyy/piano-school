@@ -30,6 +30,16 @@ async def get_current_user(
     return user
 
 
+async def get_optional_current_user(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+) -> User | None:
+    token = request.cookies.get(get_settings().session_cookie_name)
+    if not token:
+        return None
+    return await get_user_for_session(session, token)
+
+
 def require_roles(*roles: UserRole) -> Callable:
     allowed = {role.value for role in roles}
 

@@ -51,6 +51,7 @@ export default async function IndividualLessonsPage() {
             slots={slots}
             packages={account.packages}
             isAuthenticated={Boolean(user)}
+            timeZoneOverride={user?.timezone ?? null}
           />
         </section>
       </main>

@@ -77,6 +77,7 @@ export default async function BookLessonPage({ searchParams }: BookLessonPagePro
           packages={[]}
           isAuthenticated
           bookingPackage={bookingPackage}
+          timeZoneOverride={user.timezone}
         />
       </section>
     </div>

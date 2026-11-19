@@ -14,8 +14,9 @@ from app.models.individual_lessons import (
 
 async def seed_offers_and_slots(
     session_factory: async_sessionmaker[AsyncSession],
-) -> tuple[UUID, UUID, UUID, UUID, UUID]:
+) -> tuple[UUID, UUID, UUID, UUID, UUID, UUID]:
     now = datetime.now(UTC)
+    base = (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     async with session_factory() as session:
         single = IndividualLessonOffer(
             slug="single",
@@ -33,26 +34,41 @@ async def seed_offers_and_slots(
             validity_days=180,
         )
         slot_one = LessonSlot(
-            starts_at=now + timedelta(days=1),
-            ends_at=now + timedelta(days=1, hours=1),
+            starts_at=base,
+            ends_at=base + timedelta(hours=1),
+            duration_minutes=60,
+            status=LessonSlotStatus.FREE.value,
+        )
+        slot_same_day = LessonSlot(
+            starts_at=base + timedelta(hours=2),
+            ends_at=base + timedelta(hours=3),
             duration_minutes=60,
             status=LessonSlotStatus.FREE.value,
         )
         slot_two = LessonSlot(
-            starts_at=now + timedelta(days=2),
-            ends_at=now + timedelta(days=2, hours=1),
+            starts_at=base + timedelta(days=1),
+            ends_at=base + timedelta(days=1, hours=1),
             duration_minutes=60,
             status=LessonSlotStatus.FREE.value,
         )
         slot_three = LessonSlot(
-            starts_at=now + timedelta(days=3),
-            ends_at=now + timedelta(days=3, hours=1),
+            starts_at=base + timedelta(days=2),
+            ends_at=base + timedelta(days=2, hours=1),
             duration_minutes=60,
             status=LessonSlotStatus.FREE.value,
         )
-        session.add_all([single, package, slot_one, slot_two, slot_three])
+        session.add_all(
+            [single, package, slot_one, slot_same_day, slot_two, slot_three]
+        )
         await session.commit()
-        return single.id, package.id, slot_one.id, slot_two.id, slot_three.id
+        return (
+            single.id,
+            package.id,
+            slot_one.id,
+            slot_same_day.id,
+            slot_two.id,
+            slot_three.id,
+        )
 
 
 async def test_offers_and_slots_are_public(
@@ -66,7 +82,7 @@ async def test_offers_and_slots_are_public(
 
     slots = await client.get("/individual-lessons/slots")
     assert slots.status_code == 200
-    assert len(slots.json()) == 3
+    assert len(slots.json()) == 4
 
 
 async def test_purchase_and_package_booking(
@@ -78,6 +94,7 @@ async def test_purchase_and_package_booking(
         single_id,
         package_id,
         slot_one_id,
+        slot_same_day_id,
         slot_two_id,
         slot_three_id,
     ) = await seed_offers_and_slots(session_factory)
@@ -105,6 +122,12 @@ async def test_purchase_and_package_booking(
         str(slot_two_id),
         str(slot_three_id),
     }
+
+    same_day_conflict = await client.post(
+        "/individual-lessons/purchase",
+        json={"offer_id": str(package_id), "slot_id": str(slot_same_day_id)},
+    )
+    assert same_day_conflict.status_code == 409
 
     package_purchase = await client.post(
         "/individual-lessons/purchase",
