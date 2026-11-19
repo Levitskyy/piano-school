@@ -5,6 +5,10 @@ import { navigation, site } from "@/content/landing";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
+  const accountHref =
+    user?.role === "teacher" || user?.role === "admin"
+      ? "/teacher-panel"
+      : "/account";
 
   return (
     <header className="site-header">
@@ -28,7 +32,7 @@ export async function SiteHeader() {
             ))}
             <li>
               {user ? (
-                <Link href="/account">Кабинет</Link>
+                <Link href={accountHref}>Кабинет</Link>
               ) : (
                 <Link href="/login">Войти</Link>
               )}
@@ -52,7 +56,7 @@ export async function SiteHeader() {
             ))}
             <li>
               {user ? (
-                <Link href="/account">Кабинет</Link>
+                <Link href={accountHref}>Кабинет</Link>
               ) : (
                 <Link href="/login">Войти</Link>
               )}

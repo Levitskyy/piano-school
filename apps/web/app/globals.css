@@ -1907,6 +1907,55 @@ svg {
   color: var(--muted);
 }
 
+.teacher-booking-list {
+  display: grid;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.teacher-booking-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+}
+
+.teacher-booking-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.teacher-booking-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.teacher-booking-student,
+.teacher-booking-time {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.meeting-form {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.meeting-form .field {
+  flex: 1 1 20rem;
+}
+
+.meeting-form input {
+  min-block-size: 2.75rem;
+}
+
 .status-pill {
   display: inline-block;
   padding: 0.2rem 0.6rem;

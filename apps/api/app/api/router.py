@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import account, admin, auth, courses, individual_lessons
+from app.api.routes import account, admin, auth, courses, individual_lessons, teacher
 
 router = APIRouter()
 
@@ -14,4 +14,5 @@ router.include_router(auth.router)
 router.include_router(account.router)
 router.include_router(courses.router)
 router.include_router(individual_lessons.router)
+router.include_router(teacher.router)
 router.include_router(admin.router)
