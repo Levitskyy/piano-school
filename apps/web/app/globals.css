@@ -1127,6 +1127,14 @@ svg {
   gap: 1.5rem;
 }
 
+.account-course-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .account-course-head h2 {
   margin-block: 0.25rem 0.4rem;
   font-size: 1.8rem;
@@ -2109,7 +2117,8 @@ svg {
 @media (max-width: 520px) {
   .package-choice,
   .booking-item,
-  .account-course-head {
+  .account-course-head,
+  .account-course-actions {
     align-items: flex-start;
     flex-direction: column;
   }

@@ -23,10 +23,6 @@ export default async function AccountIndividualLessonsPage() {
   const past = account.bookings.filter(
     (item) => new Date(item.starts_at) <= now || item.status === "cancelled",
   );
-  const activePackages = account.packages.filter(
-    (item) => item.status === "active" && item.remaining_lessons > 0,
-  );
-
   return (
     <div className="panel-page">
       <header className="panel-page-head">
@@ -44,19 +40,35 @@ export default async function AccountIndividualLessonsPage() {
             <h2 id="packages-title">Пакеты и уроки</h2>
           </div>
           <div className="account-course-list">
-            {account.packages.map((item) => (
-              <article className="account-course" key={item.id}>
-                <div className="account-course-head">
-                  <div>
-                    <p className="card-meta">{item.offer_title}</p>
-                    <h3>
-                      Осталось {item.remaining_lessons} из {item.total_lessons} занятий
-                    </h3>
+            {account.packages.map((item) => {
+              const canBook =
+                item.status === "active" && item.remaining_lessons > 0;
+
+              return (
+                <article className="account-course" key={item.id}>
+                  <div className="account-course-head">
+                    <div>
+                      <p className="card-meta">{item.offer_title}</p>
+                      <h3>
+                        Осталось {item.remaining_lessons} из {item.total_lessons}{" "}
+                        занятий
+                      </h3>
+                    </div>
+                    <div className="account-course-actions">
+                      <span className="status-pill">{item.status}</span>
+                      {canBook ? (
+                        <Link
+                          className="button button-small"
+                          href={`/account/individual-lessons/book?package=${item.id}`}
+                        >
+                          Записаться на урок
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
-                  <span className="status-pill">{item.status}</span>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -98,15 +110,6 @@ export default async function AccountIndividualLessonsPage() {
           </ul>
         )}
       </section>
-
-      {activePackages.length > 0 ? (
-        <section className="account-section">
-          <p className="body-text">
-            Остались занятия в пакете?{" "}
-            <Link href="/individual-lessons">Запишитесь на следующий слот</Link>.
-          </p>
-        </section>
-      ) : null}
 
       {past.length > 0 ? (
         <section className="account-section" aria-labelledby="past-title">

@@ -21,6 +21,7 @@ type IndividualLessonBookingProps = {
   slots: LessonSlot[];
   packages: LessonPackage[];
   isAuthenticated: boolean;
+  bookingPackage?: LessonPackage | null;
 };
 
 type SlotGroup = {
@@ -39,6 +40,7 @@ export function IndividualLessonBooking({
   slots,
   packages,
   isAuthenticated,
+  bookingPackage = null,
 }: IndividualLessonBookingProps) {
   const router = useRouter();
   const timeZone = useSyncExternalStore(
@@ -52,6 +54,8 @@ export function IndividualLessonBooking({
   const [selectedDayLabel, setSelectedDayLabel] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isPackageMode = Boolean(bookingPackage);
 
   const groups = useMemo<SlotGroup[]>(() => {
     const byDay = new Map<string, LessonSlot[]>();
@@ -77,8 +81,11 @@ export function IndividualLessonBooking({
     visibleGroups.find((group) => group.label === selectedDayLabel) ??
     visibleGroups[0];
 
-  const selectedOffer = offers.find((offer) => offer.id === offerId);
+  const selectedOffer = isPackageMode
+    ? null
+    : offers.find((offer) => offer.id === offerId);
   const selectedSlot = slots.find((slot) => slot.id === slotId);
+  const selectedTitle = bookingPackage?.offer_title ?? selectedOffer?.title;
 
   const availablePackages = packages.filter(
     (item) => item.status === "active" && item.remaining_lessons > 0,
@@ -126,51 +133,64 @@ export function IndividualLessonBooking({
 
   return (
     <div className="lesson-booking">
-      <div className="booking-step">
-        <div className="booking-step-head">
-          <span className="step-number">1</span>
-          <div>
-            <h2>Выберите формат</h2>
-            <p>Занятия идут по 60 минут. Цены пока уточняются.</p>
+      {isPackageMode && bookingPackage ? (
+        <div className="booking-step">
+          <div className="booking-step-head">
+            <span className="step-number">✓</span>
+            <div>
+              <h2>Запись по пакету</h2>
+              <p>
+                {`${bookingPackage.offer_title}. Осталось ${bookingPackage.remaining_lessons} из ${bookingPackage.total_lessons} занятий.`}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="offer-grid" role="radiogroup" aria-label="Формат занятий">
-          {offers.map((offer) => (
-            <label
-              className="offer-card offer-choice"
-              key={offer.id}
-            >
-              <input
-                className="visually-hidden"
-                type="radio"
-                name="lesson-offer"
-                value={offer.id}
-                checked={offer.id === offerId}
-                onChange={() => setOfferId(offer.id)}
-              />
-              <p className="card-meta">
-                {offer.kind === "single"
-                  ? "Разовый урок"
-                  : `Пакет из ${offer.lessons_count} уроков`}
-              </p>
-              <h3>{offer.title}</h3>
-              <p>{offer.description}</p>
-              <p className="offer-price">
-                {formatIndividualLessonPrice(offer)}
-              </p>
-              {offer.validity_days ? (
-                <p className="offer-meta">
-                  Действует {offer.validity_days} дней
+      ) : null}
+
+      {!isPackageMode ? (
+        <div className="booking-step">
+          <div className="booking-step-head">
+            <span className="step-number">1</span>
+            <div>
+              <h2>Выберите формат</h2>
+              <p>Занятия идут по 60 минут. Цены пока уточняются.</p>
+            </div>
+          </div>
+          <div className="offer-grid" role="radiogroup" aria-label="Формат занятий">
+            {offers.map((offer) => (
+              <label className="offer-card offer-choice" key={offer.id}>
+                <input
+                  className="visually-hidden"
+                  type="radio"
+                  name="lesson-offer"
+                  value={offer.id}
+                  checked={offer.id === offerId}
+                  onChange={() => setOfferId(offer.id)}
+                />
+                <p className="card-meta">
+                  {offer.kind === "single"
+                    ? "Разовый урок"
+                    : `Пакет из ${offer.lessons_count} уроков`}
                 </p>
-              ) : null}
-            </label>
-          ))}
+                <h3>{offer.title}</h3>
+                <p>{offer.description}</p>
+                <p className="offer-price">
+                  {formatIndividualLessonPrice(offer)}
+                </p>
+                {offer.validity_days ? (
+                  <p className="offer-meta">
+                    Действует {offer.validity_days} дней
+                  </p>
+                ) : null}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="booking-step">
         <div className="booking-step-head">
-          <span className="step-number">2</span>
+          <span className="step-number">{isPackageMode ? "1" : "2"}</span>
           <div>
             <h2>Выберите дату и время</h2>
             <p>
@@ -265,9 +285,11 @@ export function IndividualLessonBooking({
         )}
 
         <p className="selection-summary" role="status">
-          {selectedOffer && selectedSlot
-            ? `Выбрано: ${selectedOffer.title}, ${formatSlotDateTime(selectedSlot.starts_at, timeZone)}`
-            : "Выберите формат и время, чтобы продолжить."}
+          {selectedTitle && selectedSlot
+            ? `Выбрано: ${selectedTitle}, ${formatSlotDateTime(selectedSlot.starts_at, timeZone)}`
+            : isPackageMode
+              ? "Выберите время, чтобы записаться на урок."
+              : "Выберите формат и время, чтобы продолжить."}
         </p>
       </div>
 
@@ -275,23 +297,34 @@ export function IndividualLessonBooking({
         <button
           className="button"
           type="button"
-          disabled={pending || !offerId || !slotId}
+          disabled={pending || !slotId || (!isPackageMode && !offerId)}
           onClick={() =>
-            send("purchase", {
-              offer_id: offerId,
-              slot_id: slotId,
-            })
+            isPackageMode && bookingPackage
+              ? send("book", {
+                  package_id: bookingPackage.id,
+                  slot_id: slotId,
+                })
+              : send("purchase", {
+                  offer_id: offerId,
+                  slot_id: slotId,
+                })
           }
         >
-          {isAuthenticated ? "Купить и записаться" : "Войти и записаться"}
+          {isPackageMode
+            ? "Записаться на урок"
+            : isAuthenticated
+              ? "Купить и записаться"
+              : "Войти и записаться"}
         </button>
-        <p className="booking-note">
-          Тестовый режим: слот подтверждается сразу, реальная оплата не списывается.
-          Ссылку на встречу преподаватель добавит в кабинете.
-        </p>
+        {!isPackageMode ? (
+          <p className="booking-note">
+            Тестовый режим: слот подтверждается сразу, реальная оплата не
+            списывается. Ссылку на встречу преподаватель добавит в кабинете.
+          </p>
+        ) : null}
       </div>
 
-      {availablePackages.length > 0 ? (
+      {!isPackageMode && availablePackages.length > 0 ? (
         <div className="booking-step">
           <div className="booking-step-head">
             <span className="step-number">3</span>
