@@ -1672,8 +1672,25 @@ svg {
 }
 
 .offer-choice {
+  position: relative;
   cursor: pointer;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.offer-choice-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.offer-choice-input:focus-visible {
+  outline: none;
 }
 
 .offer-choice:hover,

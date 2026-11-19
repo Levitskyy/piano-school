@@ -160,7 +160,7 @@ export function IndividualLessonBooking({
             {offers.map((offer) => (
               <label className="offer-card offer-choice" key={offer.id}>
                 <input
-                  className="visually-hidden"
+                  className="offer-choice-input"
                   type="radio"
                   name="lesson-offer"
                   value={offer.id}
