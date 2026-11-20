@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { AuthForm } from "@/components/auth-form";
 import { AuthShell } from "@/components/auth-shell";
 import { getCurrentUser } from "@/lib/auth";
@@ -16,7 +15,7 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();
-  if (user) redirect("/account");
+  if (user) return <ClientRedirect to="/account" />;
 
   const params = await searchParams;
   const next = typeof params.next === "string" ? params.next : undefined;

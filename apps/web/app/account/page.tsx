@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -29,7 +28,7 @@ const cards = [
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/account");
+  if (!user) return <ClientRedirect to="/login?next=/account" />;
 
   return (
     <div className="panel-page">

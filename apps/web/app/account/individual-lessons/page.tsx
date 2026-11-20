@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/auth";
 import { formatSlotDateTime } from "@/lib/individual-lessons-shared";
@@ -13,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function AccountIndividualLessonsPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/account/individual-lessons");
+  if (!user) return <ClientRedirect to="/login?next=/account/individual-lessons" />;
 
   const account = await getAccountIndividualLessons();
   const now = new Date();

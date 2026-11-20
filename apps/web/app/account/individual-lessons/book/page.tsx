@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { IndividualLessonBooking } from "@/components/individual-lesson-booking";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,7 +16,7 @@ type BookLessonPageProps = {
 
 export default async function BookLessonPage({ searchParams }: BookLessonPageProps) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/account/individual-lessons");
+  if (!user) return <ClientRedirect to="/login?next=/account/individual-lessons" />;
 
   const params = await searchParams;
   const packageId = typeof params.package === "string" ? params.package : undefined;

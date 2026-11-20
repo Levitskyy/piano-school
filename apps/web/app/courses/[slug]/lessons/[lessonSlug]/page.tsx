@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
+import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 import { LessonProgress } from "@/components/lesson-progress";
 import { SiteFooter } from "@/components/site-footer";
@@ -42,7 +43,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   }
 
   if (response.status === 401) {
-    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    return <ClientRedirect to={`/login?next=${encodeURIComponent(nextPath)}`} />;
   }
 
   if (response.status === 403) {

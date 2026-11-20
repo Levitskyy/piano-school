@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { TeacherLessonBookingList } from "@/components/teacher-lessons";
 import { getCurrentUser } from "@/lib/auth";
 import { getTeacherLessons } from "@/lib/teacher";
@@ -11,8 +10,8 @@ export const metadata: Metadata = {
 
 export default async function TeacherLessonsPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/teacher-panel/lessons");
-  if (user.role === "student") redirect("/account");
+  if (!user) return <ClientRedirect to="/login?next=/teacher-panel/lessons" />;
+  if (user.role === "student") return <ClientRedirect to="/account" />;
 
   const bookings = await getTeacherLessons();
   const now = new Date();

@@ -18,8 +18,9 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
   const lastWidthRef = useRef(0);
   const [isWide, setIsWide] = useState(false);
 
-  const accountHref =
-    user?.role === "teacher" || user?.role === "admin"
+  const accountHref = !user
+    ? "/login"
+    : user.role === "teacher" || user.role === "admin"
       ? "/teacher-panel"
       : "/account";
 

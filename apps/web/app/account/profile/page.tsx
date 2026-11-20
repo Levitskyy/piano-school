@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { ProfileForm } from "@/components/profile-form";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -10,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/account/profile");
+  if (!user) return <ClientRedirect to="/login?next=/account/profile" />;
 
   return (
     <div className="panel-page">

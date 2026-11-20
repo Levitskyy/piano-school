@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 
 const sectionLabels: Record<string, string> = {
@@ -20,7 +19,7 @@ export default async function AccountSectionPage({
   const key = section[0];
 
   if (mergedSections.has(key)) {
-    redirect("/account/courses");
+    return <ClientRedirect to="/account/courses" />;
   }
 
   const title = sectionLabels[key] ?? "Раздел кабинета";

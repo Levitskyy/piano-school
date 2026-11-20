@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { PanelShell } from "@/components/panel-shell";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -14,8 +13,8 @@ export default async function TeacherPanelLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/teacher-panel");
-  if (user.role === "student") redirect("/account");
+  if (!user) return <ClientRedirect to="/login?next=/teacher-panel" />;
+  if (user.role === "student") return <ClientRedirect to="/account" />;
 
   return (
     <PanelShell user={user} nav={teacherNav}>

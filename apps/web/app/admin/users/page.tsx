@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-
+import { ClientRedirect } from "@/components/client-redirect";
 import { fetchWithSession, type User } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -13,23 +12,38 @@ const roleLabels: Record<User["role"], string> = {
   admin: "Администратор",
 };
 
-async function loadUsers(): Promise<{ users: User[]; error: string | null }> {
+async function loadUsers(): Promise<{
+  users: User[];
+  error: string | null;
+  unauthorized: boolean;
+}> {
   let response: Response;
   try {
     response = await fetchWithSession("/admin/users");
   } catch {
-    return { users: [], error: "Сервис временно недоступен." };
+    return { users: [], error: "Сервис временно недоступен.", unauthorized: false };
   }
 
-  if (response.status === 401) redirect("/login?next=/admin/users");
-  if (!response.ok) {
-    return { users: [], error: "Не удалось загрузить пользователей." };
+  if (response.status === 401) {
+    return { users: [], error: null, unauthorized: true };
   }
-  return { users: (await response.json()) as User[], error: null };
+  if (!response.ok) {
+    return {
+      users: [],
+      error: "Не удалось загрузить пользователей.",
+      unauthorized: false,
+    };
+  }
+  return {
+    users: (await response.json()) as User[],
+    error: null,
+    unauthorized: false,
+  };
 }
 
 export default async function AdminUsersPage() {
-  const { users, error } = await loadUsers();
+  const { users, error, unauthorized } = await loadUsers();
+  if (unauthorized) return <ClientRedirect to="/login?next=/admin/users" />;
 
   return (
     <div className="panel-page">
