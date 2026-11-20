@@ -6,7 +6,7 @@ export type TimezoneGroup = {
 const cityNames: Record<string, string> = {
   "Europe/Kaliningrad": "Калининград",
   "Europe/Moscow": "Москва",
-  "Europe/Yekaterinburg": "Екатеринбург",
+  "Asia/Yekaterinburg": "Екатеринбург",
   "Asia/Novosibirsk": "Новосибирск",
   "Asia/Irkutsk": "Иркутск",
   "Asia/Vladivostok": "Владивосток",
@@ -48,7 +48,7 @@ export const timezoneGroups: TimezoneGroup[] = [
     zones: [
       "Europe/Kaliningrad",
       "Europe/Moscow",
-      "Europe/Yekaterinburg",
+      "Asia/Yekaterinburg",
       "Asia/Novosibirsk",
       "Asia/Irkutsk",
       "Asia/Vladivostok",
@@ -124,6 +124,12 @@ export function getTimezoneOffset(timeZone: string, date: Date): string {
   } catch {
     return "";
   }
+}
+
+export function getTimezoneOptionLabel(timeZone: string, date: Date): string {
+  const label = getTimezoneLabel(timeZone);
+  const offset = getTimezoneOffset(timeZone, date);
+  return offset ? `${label} (${offset})` : label;
 }
 
 export function formatTimeInTimezone(timeZone: string, date: Date): string {

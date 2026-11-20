@@ -7,8 +7,8 @@ import { apiErrorMessage } from "@/lib/api-error";
 import {
   detectBrowserTimezone,
   formatTimeInTimezone,
-  getTimezoneLabel,
   getTimezoneOffset,
+  getTimezoneOptionLabel,
   timezoneGroups,
 } from "@/lib/timezones";
 
@@ -131,13 +131,15 @@ export function ProfileForm({ initialName, initialTimezone, email }: ProfileForm
           required
         >
           {listedZones.includes(timezone) ? null : (
-            <option value={timezone}>{getTimezoneLabel(timezone)} — текущий</option>
+            <option value={timezone}>
+              {getTimezoneOptionLabel(timezone, new Date())} — текущий
+            </option>
           )}
           {timezoneGroups.map((group) => (
             <optgroup key={group.label} label={group.label}>
               {group.zones.map((zone) => (
                 <option key={zone} value={zone}>
-                  {getTimezoneLabel(zone)} ({getTimezoneOffset(zone, new Date())})
+                  {getTimezoneOptionLabel(zone, new Date())}
                 </option>
               ))}
             </optgroup>
