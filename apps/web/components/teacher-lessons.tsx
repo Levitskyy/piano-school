@@ -5,14 +5,11 @@ import { useId, useRef, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { apiErrorMessage } from "@/lib/api-error";
-import { formatSlotDateTime } from "@/lib/individual-lessons-shared";
+import {
+  formatSlotDateTime,
+  formatStatusLabel,
+} from "@/lib/individual-lessons-shared";
 import type { TeacherLessonBooking } from "@/lib/teacher";
-
-const statusLabels: Record<string, string> = {
-  confirmed: "подтверждено",
-  completed: "проведено",
-  cancelled: "отменено",
-};
 
 type TeacherLessonBookingListProps = {
   bookings: TeacherLessonBooking[];
@@ -76,7 +73,7 @@ function BookingCard({
           </p>
         </div>
         <span className="status-pill">
-          {statusLabels[booking.status] ?? booking.status}
+          {formatStatusLabel(booking.status)}
         </span>
       </div>
 

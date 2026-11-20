@@ -45,6 +45,21 @@ export type AccountIndividualLessons = {
   bookings: LessonBooking[];
 };
 
+const statusLabels: Record<string, string> = {
+  active: "активен",
+  exhausted: "исчерпан",
+  expired: "истёк",
+  cancelled: "отменён",
+  confirmed: "подтверждено",
+  completed: "завершено",
+  in_progress: "в работе",
+  pending: "ожидает",
+};
+
+export function formatStatusLabel(status: string): string {
+  return statusLabels[status] ?? status;
+}
+
 export function formatIndividualLessonPrice(offer: IndividualLessonOffer): string {
   if (offer.price_minor === null) return "Цена уточняется";
   return new Intl.NumberFormat("ru-RU", {

@@ -3,7 +3,10 @@ import Link from "next/link";
 import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/auth";
-import { formatSlotDateTime } from "@/lib/individual-lessons-shared";
+import {
+  formatSlotDateTime,
+  formatStatusLabel,
+} from "@/lib/individual-lessons-shared";
 import { getAccountIndividualLessons } from "@/lib/individual-lessons";
 
 export const metadata: Metadata = {
@@ -54,7 +57,7 @@ export default async function AccountIndividualLessonsPage() {
                       </h3>
                     </div>
                     <div className="account-course-actions">
-                      <span className="status-pill">{item.status}</span>
+                      <span className="status-pill">{formatStatusLabel(item.status)}</span>
                       {canBook ? (
                         <Link
                           className="button button-small"
@@ -112,7 +115,7 @@ export default async function AccountIndividualLessonsPage() {
                     </p>
                   )}
                 </div>
-                <span className="status-pill">{item.status}</span>
+                <span className="status-pill">{formatStatusLabel(item.status)}</span>
               </li>
             ))}
           </ul>
@@ -131,7 +134,7 @@ export default async function AccountIndividualLessonsPage() {
                   <h3>{item.offer_title}</h3>
                   <p>{formatSlotDateTime(item.starts_at, user.timezone)}</p>
                 </div>
-                <span className="status-pill">{item.status}</span>
+                <span className="status-pill">{formatStatusLabel(item.status)}</span>
               </li>
             ))}
           </ul>
