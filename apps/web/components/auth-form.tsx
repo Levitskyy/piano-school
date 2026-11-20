@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
 import { apiErrorMessage } from "@/lib/api-error";
+import { detectBrowserTimezone } from "@/lib/timezones";
 
 type Mode = "login" | "register";
 
@@ -41,7 +42,7 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
           name: String(data.get("name") ?? ""),
           email: String(data.get("email") ?? ""),
           password: String(data.get("password") ?? ""),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timezone: detectBrowserTimezone() ?? "Europe/Moscow",
         };
 
     try {
@@ -102,6 +103,13 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
             required
           />
         </div>
+      ) : null}
+
+      {!isLogin ? (
+        <p className="field-hint">
+          Часовой пояс определится автоматически по вашему устройству. Позже его можно
+          изменить в профиле.
+        </p>
       ) : null}
 
       <div className="field">

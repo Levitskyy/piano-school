@@ -109,6 +109,18 @@ async def test_profile_update(
     assert update.json()["timezone"] == "Asia/Tbilisi"
 
 
+async def test_profile_update_rejects_unknown_timezone(
+    client: AsyncClient, register_payload: dict[str, str]
+) -> None:
+    await client.post("/auth/register", json=register_payload)
+
+    response = await client.patch(
+        "/account/profile",
+        json={"timezone": "Москва, GMT+3"},
+    )
+    assert response.status_code == 422
+
+
 async def test_admin_routes_require_admin(
     client: AsyncClient, register_payload: dict[str, str]
 ) -> None:

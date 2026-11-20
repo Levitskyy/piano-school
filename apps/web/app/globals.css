@@ -1408,6 +1408,18 @@ svg {
   line-height: 1.45;
 }
 
+.timezone-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+.timezone-region {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .field-hint code {
   padding: 0.05em 0.3em;
   background: var(--paper-deep);
