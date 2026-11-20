@@ -1,18 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { apiErrorMessage } from "@/lib/api-error";
 import {
   detectBrowserTimezone,
   formatTimeInTimezone,
-  getTimezoneGroup,
   getTimezoneLabel,
   getTimezoneOffset,
-  getTimezoneOptions,
-  groupTimezoneOptions,
-  timezoneGroupOrder,
+  timezoneGroups,
 } from "@/lib/timezones";
 
 type ProfileFormProps = {
@@ -20,6 +17,8 @@ type ProfileFormProps = {
   initialTimezone: string;
   email: string;
 };
+
+const listedZones = timezoneGroups.flatMap((group) => group.zones);
 
 export function ProfileForm({ initialName, initialTimezone, email }: ProfileFormProps) {
   const router = useRouter();
@@ -29,24 +28,7 @@ export function ProfileForm({ initialName, initialTimezone, email }: ProfileForm
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [timezone, setTimezone] = useState(initialTimezone);
-  const [query, setQuery] = useState("");
   const [now, setNow] = useState<Date | null>(null);
-
-  const options = useMemo(() => getTimezoneOptions(), []);
-  const visibleOptions = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase("ru");
-    if (!needle) return options;
-    return options.filter(
-      (option) =>
-        option.label.toLocaleLowerCase("ru").includes(needle) ||
-        option.value.toLocaleLowerCase("ru").includes(needle),
-    );
-  }, [options, query]);
-  const groupedOptions = useMemo(
-    () => groupTimezoneOptions(visibleOptions),
-    [visibleOptions],
-  );
-  const currentOptionVisible = visibleOptions.some((option) => option.value === timezone);
 
   useEffect(() => {
     const update = () => setNow(new Date());
@@ -102,7 +84,6 @@ export function ProfileForm({ initialName, initialTimezone, email }: ProfileForm
     }
     setError(null);
     setMessage(null);
-    setQuery("");
     setTimezone(detected);
   }
 
@@ -140,19 +121,6 @@ export function ProfileForm({ initialName, initialTimezone, email }: ProfileForm
       </div>
 
       <div className="field">
-        <label htmlFor="timezone-search">Поиск часового пояса</label>
-        <input
-          id="timezone-search"
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Например, Москва или Токио"
-          autoComplete="off"
-          aria-describedby={hintId}
-        />
-      </div>
-
-      <div className="field">
         <label htmlFor="timezone">Часовой пояс</label>
         <select
           id="timezone"
@@ -162,22 +130,18 @@ export function ProfileForm({ initialName, initialTimezone, email }: ProfileForm
           aria-describedby={hintId}
           required
         >
-          {currentOptionVisible ? null : (
-            <option value={timezone}>
-              {getTimezoneLabel(timezone)} — текущий
-            </option>
+          {listedZones.includes(timezone) ? null : (
+            <option value={timezone}>{getTimezoneLabel(timezone)} — текущий</option>
           )}
-          {groupedOptions.map((group, index) =>
-            group.length === 0 ? null : (
-              <optgroup key={timezoneGroupOrder[index]} label={timezoneGroupOrder[index]}>
-                {group.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </optgroup>
-            ),
-          )}
+          {timezoneGroups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.zones.map((zone) => (
+                <option key={zone} value={zone}>
+                  {getTimezoneLabel(zone)} ({getTimezoneOffset(zone, new Date())})
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </select>
 
         <div className="timezone-controls">
@@ -188,15 +152,16 @@ export function ProfileForm({ initialName, initialTimezone, email }: ProfileForm
           >
             Определить автоматически
           </button>
-          <span className="timezone-region">
-            {getTimezoneGroup(timezone)}
-          </span>
         </div>
 
         <p className="field-hint" id={hintId}>
+          Выберите ближайший город. Если вашего пояса нет в списке, нажмите
+          «Определить автоматически» — пояс подставится по вашему устройству.
+        </p>
+        <p className="field-hint">
           {now
             ? `Сейчас в выбранном поясе: ${formatTimeInTimezone(timezone, now)} (${getTimezoneOffset(timezone, now)}).`
-            : "Выберите город из списка — время для расписания занятий будет показано локально."}
+            : null}
         </p>
       </div>
 
