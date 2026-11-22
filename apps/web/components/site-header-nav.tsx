@@ -8,6 +8,12 @@ import type { User } from "@/lib/auth";
 
 const POPOVER_OPEN_SELECTOR = ":is(:popover-open, .\\:popover-open)";
 
+// Кнопка «Записаться» уже ведёт на /individual-lessons; длинная текстовая
+// ссылка дублирует её и не даёт меню поместиться в строку на ноутбуках.
+const headerNavigation = navigation.filter(
+  (item) => item.href !== "/individual-lessons",
+);
+
 type SiteHeaderNavProps = {
   user: User | null;
 };
@@ -35,7 +41,12 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
     inner.classList.add("is-measuring", "is-wide");
     menu.removeAttribute("popover");
 
-    const fits = inner.scrollWidth <= inner.clientWidth;
+    // scrollWidth останавливается на границе padding, поэтому ссылки,
+    // зашедшие в правый отступ, всё равно считаются поместившимися.
+    const paddingEnd = parseFloat(getComputedStyle(inner).paddingInlineEnd) || 0;
+    const contentEnd = inner.getBoundingClientRect().right - paddingEnd;
+    // 1px — погрешность дробных координат при центрировании строки.
+    const fits = menu.getBoundingClientRect().right <= contentEnd + 1;
 
     if (!fits) {
       inner.classList.remove("is-wide");
@@ -43,7 +54,7 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
       if (wasOpen && !previousWide) menu.showPopover?.();
     }
 
-    inner.classList.remove("is-measuring");
+    requestAnimationFrame(() => inner.classList.remove("is-measuring"));
     setIsWide(fits);
   }, []);
 
@@ -93,7 +104,7 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
         </button>
 
         <ul className="mobile-menu" id="site-menu" ref={menuRef} {...popoverAttr}>
-          {navigation.map((item) => (
+          {headerNavigation.map((item) => (
             <li key={item.href}>
               <Link href={item.href}>{item.label}</Link>
             </li>
