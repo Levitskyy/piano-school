@@ -18,16 +18,22 @@ async def yookassa_webhook(
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ) -> Response:
-    payment = payload.get("object") or {}
-    payment_id = payment.get("id")
+    payment = payload.get("object")
+    payment_id = payment.get("id") if isinstance(payment, dict) else None
     if not isinstance(payment_id, str) or not payment_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Некорректное уведомление",
         )
 
+    event = payload.get("event")
     try:
-        await payments_service.confirm_payment(session, payment_id)
+        if event == "payment.canceled":
+            await payments_service.cancel_payment(session, payment_id)
+        elif event in (None, "payment.succeeded"):
+            await payments_service.confirm_payment(session, payment_id)
+        # Остальные события ЮKassa нам сейчас не нужны, но подтверждаем
+        # доставку, чтобы она не повторялась бесконечно.
     except payments_service.PaymentError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

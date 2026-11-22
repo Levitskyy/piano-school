@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import get_settings
 from app.models.individual_lessons import (
     IndividualLessonOffer,
     LessonBooking,
@@ -50,6 +51,14 @@ class PackageUnavailableError(Exception):
     pass
 
 
+class BookingNotFoundError(Exception):
+    pass
+
+
+class BookingUnavailableError(Exception):
+    pass
+
+
 def offer_out_data(offer: IndividualLessonOffer) -> dict:
     return {
         "id": offer.id,
@@ -88,6 +97,14 @@ def package_out_data(package: LessonPackage) -> LessonPackageOut:
 
 
 def booking_out_data(booking: LessonBooking) -> LessonBookingOut:
+    now = datetime.now(UTC)
+    starts_at = as_utc(booking.slot.starts_at)
+    can_change = (
+        booking.status == LessonBookingStatus.CONFIRMED.value
+        and starts_at > now
+        and starts_at - now
+        >= timedelta(hours=get_settings().lesson_cancellation_hours)
+    )
     return LessonBookingOut(
         id=booking.id,
         package_id=booking.package_id,
@@ -96,12 +113,17 @@ def booking_out_data(booking: LessonBooking) -> LessonBookingOut:
         starts_at=booking.slot.starts_at,
         ends_at=booking.slot.ends_at,
         meeting_url=booking.meeting_url,
+        can_change=can_change,
         created_at=booking.created_at,
     )
 
 
-async def booked_day_keys(session: AsyncSession, user: User) -> set[str]:
-    result = await session.scalars(
+async def booked_day_keys(
+    session: AsyncSession,
+    user: User,
+    exclude_booking_id=None,
+) -> set[str]:
+    query = (
         select(LessonSlot.starts_at)
         .join(LessonBooking, LessonBooking.slot_id == LessonSlot.id)
         .where(
@@ -111,6 +133,9 @@ async def booked_day_keys(session: AsyncSession, user: User) -> set[str]:
             ),
         )
     )
+    if exclude_booking_id is not None:
+        query = query.where(LessonBooking.id != exclude_booking_id)
+    result = await session.scalars(query)
     tz = user_timezone(user)
     return {local_day_key(starts_at, tz) for starts_at in result.all()}
 
@@ -125,7 +150,9 @@ async def list_offers(session: AsyncSession) -> list[dict]:
 
 
 async def list_free_slots(
-    session: AsyncSession, user: User | None = None
+    session: AsyncSession,
+    user: User | None = None,
+    exclude_booking_id=None,
 ) -> list[dict]:
     now = datetime.now(UTC)
     until = now + timedelta(days=SLOT_LOOKAHEAD_DAYS)
@@ -140,7 +167,9 @@ async def list_free_slots(
     )
     slots = result.all()
     if user is not None:
-        booked_days = await booked_day_keys(session, user)
+        booked_days = await booked_day_keys(
+            session, user, exclude_booking_id=exclude_booking_id
+        )
         tz = user_timezone(user)
         slots = [
             slot
@@ -155,9 +184,14 @@ async def _lock_user(session: AsyncSession, user_id) -> None:
 
 
 async def _ensure_no_booking_on_day(
-    session: AsyncSession, user: User, slot: LessonSlot
+    session: AsyncSession,
+    user: User,
+    slot: LessonSlot,
+    exclude_booking_id=None,
 ) -> None:
-    booked_days = await booked_day_keys(session, user)
+    booked_days = await booked_day_keys(
+        session, user, exclude_booking_id=exclude_booking_id
+    )
     if local_day_key(slot.starts_at, user_timezone(user)) in booked_days:
         raise SlotUnavailableError(
             "На этот день у вас уже есть занятие. Выберите следующий день."
@@ -284,6 +318,131 @@ async def book_from_package(
         raise SlotUnavailableError("Слот уже занят") from exc
 
     return booking_out_data(booking)
+
+
+def _booking_query():
+    return select(LessonBooking).options(
+        selectinload(LessonBooking.package).selectinload(LessonPackage.offer),
+        selectinload(LessonBooking.slot),
+        selectinload(LessonBooking.user),
+    )
+
+
+async def _get_booking(
+    session: AsyncSession,
+    booking_id,
+    *,
+    user_id=None,
+    for_update: bool = False,
+) -> LessonBooking | None:
+    query = _booking_query().where(LessonBooking.id == booking_id)
+    if user_id is not None:
+        query = query.where(LessonBooking.user_id == user_id)
+    if for_update:
+        query = query.with_for_update()
+    return await session.scalar(query)
+
+
+def _ensure_booking_can_change(booking: LessonBooking, *, allow_late: bool) -> None:
+    now = datetime.now(UTC)
+    starts_at = as_utc(booking.slot.starts_at)
+    if starts_at <= now:
+        raise BookingUnavailableError("Занятие уже началось")
+    if allow_late:
+        return
+    hours = get_settings().lesson_cancellation_hours
+    if starts_at - now < timedelta(hours=hours):
+        raise BookingUnavailableError(
+            f"Изменить занятие можно не позднее чем за {hours} ч. Напишите преподавателю."
+        )
+
+
+def _return_lesson_to_package(package: LessonPackage) -> None:
+    if package.status == LessonPackageStatus.CANCELLED.value:
+        return
+    package.remaining_lessons = min(
+        package.total_lessons, package.remaining_lessons + 1
+    )
+    if package.status == LessonPackageStatus.EXHAUSTED.value:
+        expires_at = as_utc(package.expires_at) if package.expires_at else None
+        if expires_at is None or expires_at > datetime.now(UTC):
+            package.status = LessonPackageStatus.ACTIVE.value
+
+
+async def cancel_booking(
+    session: AsyncSession,
+    booking_id,
+    *,
+    user: User | None = None,
+    allow_late: bool = False,
+) -> LessonBookingOut:
+    booking = await _get_booking(
+        session,
+        booking_id,
+        user_id=user.id if user is not None else None,
+        for_update=True,
+    )
+    if booking is None:
+        raise BookingNotFoundError("Запись не найдена")
+    if booking.status != LessonBookingStatus.CONFIRMED.value:
+        raise BookingUnavailableError("Занятие уже отменено или завершено")
+    _ensure_booking_can_change(booking, allow_late=allow_late)
+
+    booking.status = LessonBookingStatus.CANCELLED.value
+    if booking.slot.status == LessonSlotStatus.BOOKED.value:
+        booking.slot.status = LessonSlotStatus.FREE.value
+    _return_lesson_to_package(booking.package)
+    await session.commit()
+
+    updated = await _get_booking(session, booking.id)
+    if updated is None:
+        raise BookingNotFoundError("Запись не найдена")
+    return booking_out_data(updated)
+
+
+async def reschedule_booking(
+    session: AsyncSession,
+    booking_id,
+    new_slot_id,
+    *,
+    user: User | None = None,
+    allow_late: bool = False,
+) -> LessonBookingOut:
+    booking = await _get_booking(
+        session,
+        booking_id,
+        user_id=user.id if user is not None else None,
+        for_update=True,
+    )
+    if booking is None:
+        raise BookingNotFoundError("Запись не найдена")
+    if booking.status != LessonBookingStatus.CONFIRMED.value:
+        raise BookingUnavailableError("Занятие уже отменено или завершено")
+    _ensure_booking_can_change(booking, allow_late=allow_late)
+    if booking.slot_id == new_slot_id:
+        return booking_out_data(booking)
+
+    new_slot = await _get_free_slot(session, new_slot_id)
+    if new_slot.duration_minutes != booking.package.offer.duration_minutes:
+        raise SlotUnavailableError("Длительность слота не соответствует тарифу")
+    await _ensure_no_booking_on_day(
+        session, booking.user, new_slot, exclude_booking_id=booking.id
+    )
+
+    booking.slot.status = LessonSlotStatus.FREE.value
+    new_slot.status = LessonSlotStatus.BOOKED.value
+    booking.slot_id = new_slot.id
+    booking.meeting_url = None
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise SlotUnavailableError("Слот уже занят") from exc
+
+    updated = await _get_booking(session, booking.id)
+    if updated is None:
+        raise BookingNotFoundError("Запись не найдена")
+    return booking_out_data(updated)
 
 
 async def get_account_lessons(session: AsyncSession, user: User) -> AccountIndividualLessonsOut:

@@ -41,6 +41,10 @@ class PromoCode(Base):
     discount_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Пока заказ не оплачен, код закреплён за ним и не применяется в других заказах.
+    reserved_order_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, server_default=func.now()
     )

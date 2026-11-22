@@ -8,12 +8,13 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
-    UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -115,7 +116,15 @@ class LessonPackage(Base):
 
 class LessonBooking(Base):
     __tablename__ = "lesson_bookings"
-    __table_args__ = (UniqueConstraint("slot_id", name="uq_lesson_bookings_slot_id"),)
+    __table_args__ = (
+        Index(
+            "uq_lesson_bookings_confirmed_slot_id",
+            "slot_id",
+            unique=True,
+            postgresql_where=text("status = 'confirmed'"),
+            sqlite_where=text("status = 'confirmed'"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)

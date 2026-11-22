@@ -19,9 +19,14 @@ export async function getIndividualLessonOffers(): Promise<IndividualLessonOffer
   }
 }
 
-export async function getFreeLessonSlots(): Promise<LessonSlot[]> {
+export async function getFreeLessonSlots(
+  excludeBookingId?: string,
+): Promise<LessonSlot[]> {
   try {
-    const response = await fetchWithSession("/individual-lessons/slots");
+    const query = excludeBookingId
+      ? `?exclude_booking=${encodeURIComponent(excludeBookingId)}`
+      : "";
+    const response = await fetchWithSession(`/individual-lessons/slots${query}`);
     if (!response.ok) return [];
     return (await response.json()) as LessonSlot[];
   } catch {

@@ -30,8 +30,12 @@ function BookingCard({
   const errorRef = useRef<HTMLParagraphElement>(null);
   const [meetingUrl, setMeetingUrl] = useState(booking.meeting_url ?? "");
   const [pending, setPending] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const isUpcoming =
+    booking.status === "confirmed" && new Date(booking.starts_at) > new Date();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,6 +67,39 @@ function BookingCard({
     }
   }
 
+  async function handleCancel() {
+    const label = formatSlotDateTime(booking.starts_at, timeZone);
+    if (
+      !window.confirm(
+        `Отменить занятие ${label}? Урок вернётся в пакет ученика.`,
+      )
+    ) {
+      return;
+    }
+
+    setError(null);
+    setSaved(false);
+    setCancelling(true);
+    try {
+      const response = await fetch(
+        `/api/teacher/lessons/${booking.id}/cancel`,
+        { method: "POST" },
+      );
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(apiErrorMessage(body));
+        requestAnimationFrame(() => errorRef.current?.focus());
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Сервис временно недоступен. Попробуйте ещё раз.");
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
     <li className="teacher-booking-card">
       <div className="teacher-booking-head">
@@ -81,6 +118,19 @@ function BookingCard({
         {formatSlotDateTime(booking.starts_at, timeZone)}
       </p>
 
+      {isUpcoming ? (
+        <div className="booking-actions-row">
+          <button
+            className="button button-small button-ghost"
+            type="button"
+            disabled={cancelling}
+            onClick={() => void handleCancel()}
+          >
+            {cancelling ? "Отменяем…" : "Отменить занятие"}
+          </button>
+        </div>
+      ) : null}
+
       {booking.meeting_url ? (
         <p>
           <a href={booking.meeting_url} target="_blank" rel="noreferrer">
@@ -89,26 +139,28 @@ function BookingCard({
         </p>
       ) : null}
 
-      <form className="meeting-form" onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor={inputId}>Ссылка на встречу</label>
-          <input
-            id={inputId}
-            name="meeting_url"
-            type="url"
-            inputMode="url"
-            placeholder="https://..."
-            value={meetingUrl}
-            onChange={(event) => {
-              setMeetingUrl(event.target.value);
-              setSaved(false);
-            }}
-          />
-        </div>
-        <button className="button button-small" type="submit" disabled={pending}>
-          {pending ? "Сохраняем…" : "Сохранить"}
-        </button>
-      </form>
+      {booking.status !== "cancelled" ? (
+        <form className="meeting-form" onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor={inputId}>Ссылка на встречу</label>
+            <input
+              id={inputId}
+              name="meeting_url"
+              type="url"
+              inputMode="url"
+              placeholder="https://..."
+              value={meetingUrl}
+              onChange={(event) => {
+                setMeetingUrl(event.target.value);
+                setSaved(false);
+              }}
+            />
+          </div>
+          <button className="button button-small" type="submit" disabled={pending}>
+            {pending ? "Сохраняем…" : "Сохранить"}
+          </button>
+        </form>
+      ) : null}
 
       {error ? (
         <p className="form-error" role="alert" tabIndex={-1} ref={errorRef}>

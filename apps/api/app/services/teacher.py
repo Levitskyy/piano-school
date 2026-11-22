@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.individual_lessons import LessonBooking, LessonPackage, LessonSlot
 from app.schemas.teacher import TeacherLessonBookingOut
+from app.services import individual_lessons as individual_lessons_service
 
 
 def booking_out(booking: LessonBooking) -> TeacherLessonBookingOut:
@@ -58,3 +59,27 @@ async def update_meeting_url(
     booking.meeting_url = str(meeting_url) if meeting_url else None
     await session.commit()
     return booking_out(booking)
+
+
+async def _reload_booking(
+    session: AsyncSession, booking_id: UUID
+) -> TeacherLessonBookingOut:
+    booking = await session.scalar(
+        booking_query().where(LessonBooking.id == booking_id)
+    )
+    if booking is None:
+        raise LookupError("Запись не найдена")
+    return booking_out(booking)
+
+
+async def cancel_booking(
+    session: AsyncSession, booking_id: UUID
+) -> TeacherLessonBookingOut:
+    try:
+        await individual_lessons_service.cancel_booking(
+            session, booking_id, allow_late=True
+        )
+    except individual_lessons_service.BookingNotFoundError as exc:
+        raise LookupError(str(exc)) from exc
+    return await _reload_booking(session, booking_id)
+

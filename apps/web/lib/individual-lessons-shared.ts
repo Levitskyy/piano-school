@@ -37,6 +37,7 @@ export type LessonBooking = {
   starts_at: string;
   ends_at: string;
   meeting_url: string | null;
+  can_change: boolean;
   created_at: string;
 };
 

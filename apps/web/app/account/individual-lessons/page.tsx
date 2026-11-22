@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
+import { LessonBookingActions } from "@/components/lesson-booking-actions";
 import { getCurrentUser } from "@/lib/auth";
 import {
   formatSlotDateTime,
@@ -114,6 +115,12 @@ export default async function AccountIndividualLessonsPage() {
                       Ссылка на встречу будет добавлена преподавателем.
                     </p>
                   )}
+                  <LessonBookingActions
+                    bookingId={item.id}
+                    startsAt={item.starts_at}
+                    canChange={item.can_change}
+                    timeZone={user.timezone}
+                  />
                 </div>
                 <span className="status-pill">{formatStatusLabel(item.status)}</span>
               </li>

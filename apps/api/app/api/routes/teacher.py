@@ -7,6 +7,7 @@ from app.api.deps import require_roles
 from app.db import get_session
 from app.models.user import User, UserRole
 from app.schemas.teacher import TeacherLessonBookingOut, TeacherLessonUpdateIn
+from app.services import individual_lessons as individual_lessons_service
 from app.services import teacher as teacher_service
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
@@ -37,3 +38,25 @@ async def update_lesson(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+
+
+@router.post("/lessons/{booking_id}/cancel", response_model=TeacherLessonBookingOut)
+async def cancel_lesson(
+    booking_id: UUID,
+    _: User = Depends(require_roles(*TEACHER_ROLES)),
+    session: AsyncSession = Depends(get_session),
+) -> TeacherLessonBookingOut:
+    try:
+        return await teacher_service.cancel_booking(session, booking_id)
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except (
+        individual_lessons_service.BookingUnavailableError,
+        individual_lessons_service.SlotUnavailableError,
+    ) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+

@@ -51,7 +51,12 @@ class LessonBookingOut(BaseModel):
     starts_at: datetime
     ends_at: datetime
     meeting_url: str | None
+    can_change: bool
     created_at: datetime
+
+
+class RescheduleLessonIn(BaseModel):
+    slot_id: UUID
 
 
 class AccountIndividualLessonsOut(BaseModel):

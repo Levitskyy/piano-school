@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +12,7 @@ from app.schemas.individual_lessons import (
     IndividualLessonOfferOut,
     LessonBookingOut,
     LessonSlotOut,
+    RescheduleLessonIn,
 )
 from app.schemas.payments import PurchasePaymentIn, PurchasePaymentOut
 from app.services import individual_lessons as individual_lessons_service
@@ -28,11 +31,14 @@ async def list_offers(
 
 @router.get("/slots", response_model=list[LessonSlotOut])
 async def list_slots(
+    exclude_booking: UUID | None = None,
     user: User | None = Depends(get_optional_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[LessonSlotOut]:
     await payments_service.release_expired_orders(session)
-    slots = await individual_lessons_service.list_free_slots(session, user)
+    slots = await individual_lessons_service.list_free_slots(
+        session, user, exclude_booking_id=exclude_booking
+    )
     return [LessonSlotOut(**slot) for slot in slots]
 
 
@@ -89,4 +95,40 @@ async def book_from_package(
     except individual_lessons_service.PackageUnavailableError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except individual_lessons_service.SlotUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post("/bookings/{booking_id}/cancel", response_model=LessonBookingOut)
+async def cancel_lesson(
+    booking_id: UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> LessonBookingOut:
+    try:
+        return await individual_lessons_service.cancel_booking(
+            session, booking_id, user=user
+        )
+    except individual_lessons_service.BookingNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except individual_lessons_service.BookingUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post("/bookings/{booking_id}/reschedule", response_model=LessonBookingOut)
+async def reschedule_lesson(
+    booking_id: UUID,
+    payload: RescheduleLessonIn,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> LessonBookingOut:
+    try:
+        return await individual_lessons_service.reschedule_booking(
+            session, booking_id, payload.slot_id, user=user
+        )
+    except individual_lessons_service.BookingNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (
+        individual_lessons_service.BookingUnavailableError,
+        individual_lessons_service.SlotUnavailableError,
+    ) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     session_cookie_name: str = "ps_session"
     session_ttl_days: int = 30
     password_reset_ttl_minutes: int = 60
+    lesson_cancellation_hours: int = 24
 
     email_provider: str = "console"
     email_from: str = ""

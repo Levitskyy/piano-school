@@ -12,6 +12,7 @@ import {
   formatSlotDay,
   formatSlotTime,
   type IndividualLessonOffer,
+  type LessonBooking,
   type LessonPackage,
   type LessonSlot,
 } from "@/lib/individual-lessons-shared";
@@ -22,6 +23,7 @@ type IndividualLessonBookingProps = {
   packages: LessonPackage[];
   isAuthenticated: boolean;
   bookingPackage?: LessonPackage | null;
+  rescheduleBooking?: Pick<LessonBooking, "id" | "offer_title" | "starts_at"> | null;
   timeZoneOverride?: string | null;
 };
 
@@ -42,6 +44,7 @@ export function IndividualLessonBooking({
   packages,
   isAuthenticated,
   bookingPackage = null,
+  rescheduleBooking = null,
   timeZoneOverride = null,
 }: IndividualLessonBookingProps) {
   const router = useRouter();
@@ -60,6 +63,7 @@ export function IndividualLessonBooking({
   const [error, setError] = useState<string | null>(null);
 
   const isPackageMode = Boolean(bookingPackage);
+  const isRescheduleMode = Boolean(rescheduleBooking);
 
   const groups = useMemo<SlotGroup[]>(() => {
     const byDay = new Map<string, LessonSlot[]>();
@@ -89,7 +93,10 @@ export function IndividualLessonBooking({
     ? null
     : offers.find((offer) => offer.id === offerId);
   const selectedSlot = slots.find((slot) => slot.id === slotId);
-  const selectedTitle = bookingPackage?.offer_title ?? selectedOffer?.title;
+  const selectedTitle =
+    rescheduleBooking?.offer_title ??
+    bookingPackage?.offer_title ??
+    selectedOffer?.title;
 
   const availablePackages = packages.filter(
     (item) => item.status === "active" && item.remaining_lessons > 0,
@@ -110,7 +117,10 @@ export function IndividualLessonBooking({
       return;
     }
     if (!isAuthenticated) {
-      router.push(`/login?next=${encodeURIComponent("/individual-lessons")}`);
+      const nextPath = rescheduleBooking
+        ? `/account/individual-lessons/bookings/${rescheduleBooking.id}/reschedule`
+        : "/individual-lessons";
+      router.push(`/login?next=${encodeURIComponent(nextPath)}`);
       return;
     }
 
@@ -186,6 +196,20 @@ export function IndividualLessonBooking({
 
   return (
     <div className="lesson-booking">
+      {isRescheduleMode && rescheduleBooking ? (
+        <div className="booking-step">
+          <div className="booking-step-head">
+            <span className="step-number">↺</span>
+            <div>
+              <h2>Перенос занятия</h2>
+              <p>
+                {`${rescheduleBooking.offer_title}. Сейчас занятие назначено на ${formatSlotDateTime(rescheduleBooking.starts_at, timeZone)}.`}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isPackageMode && bookingPackage ? (
         <div className="booking-step">
           <div className="booking-step-head">
@@ -200,7 +224,7 @@ export function IndividualLessonBooking({
         </div>
       ) : null}
 
-      {!isPackageMode ? (
+      {!isPackageMode && !isRescheduleMode ? (
         <div className="booking-step">
           <div className="booking-step-head">
             <span className="step-number">1</span>
@@ -243,7 +267,9 @@ export function IndividualLessonBooking({
 
       <div className="booking-step">
         <div className="booking-step-head">
-          <span className="step-number">{isPackageMode ? "1" : "2"}</span>
+          <span className="step-number">
+            {isPackageMode || isRescheduleMode ? "1" : "2"}
+          </span>
           <div>
             <h2>Выберите дату и время</h2>
             <p>
@@ -343,13 +369,33 @@ export function IndividualLessonBooking({
         <p className="selection-summary" role="status">
           {selectedTitle && selectedSlot
             ? `Выбрано: ${selectedTitle}, ${formatSlotDateTime(selectedSlot.starts_at, timeZone)}`
-            : isPackageMode
-              ? "Выберите время, чтобы записаться на урок."
-              : "Выберите формат и время, чтобы продолжить."}
+            : isRescheduleMode
+              ? "Выберите новое время, чтобы перенести занятие."
+              : isPackageMode
+                ? "Выберите время, чтобы записаться на урок."
+                : "Выберите формат и время, чтобы продолжить."}
         </p>
       </div>
 
-      {isPackageMode ? (
+      {isRescheduleMode && rescheduleBooking ? (
+        <div className="booking-actions">
+          <button
+            className="button"
+            type="button"
+            disabled={pending || !slotId}
+            onClick={() =>
+              send(`bookings/${rescheduleBooking.id}/reschedule`, {
+                slot_id: slotId,
+              })
+            }
+          >
+            Перенести занятие
+          </button>
+          <p className="booking-note">
+            Старое время освободится, а занятие останется в том же пакете.
+          </p>
+        </div>
+      ) : isPackageMode ? (
         <div className="booking-actions">
           <button
             className="button"
@@ -393,7 +439,7 @@ export function IndividualLessonBooking({
         </form>
       )}
 
-      {!isPackageMode && availablePackages.length > 0 ? (
+      {!isPackageMode && !isRescheduleMode && availablePackages.length > 0 ? (
         <div className="booking-step">
           <div className="booking-step-head">
             <span className="step-number">3</span>
