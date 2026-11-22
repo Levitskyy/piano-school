@@ -2,7 +2,16 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { about, cta, faq, formats, hero, manifesto, process, program } from "@/content/landing";
+import {
+  about,
+  cta,
+  faq,
+  formats,
+  formatsMore,
+  hero,
+  manifesto,
+  process,
+} from "@/content/landing";
 
 function number(index: number) {
   return String(index + 1).padStart(2, "0");
@@ -82,7 +91,7 @@ export default function HomePage() {
               </svg>
 
               <div className="score-card-foot">
-                <span>видео · ноты · практика</span>
+                <span>ноты · практика · обратная связь</span>
                 <span className="score-index">01 / 12</span>
               </div>
             </div>
@@ -92,7 +101,7 @@ export default function HomePage() {
         <section className="section" id="formats">
           <div className="section-head">
             <p className="eyebrow">Форматы</p>
-            <h2>Три способа учиться</h2>
+            <h2>Два формата занятий</h2>
           </div>
 
           <ul className="format-grid" role="list">
@@ -107,7 +116,7 @@ export default function HomePage() {
           </ul>
 
           <p className="section-more">
-            <Link href="/courses">Курс и варианты покупки →</Link>
+            <Link href={formatsMore.href}>{formatsMore.label}</Link>
           </p>
         </section>
 
@@ -133,26 +142,6 @@ export default function HomePage() {
               ))}
             </ul>
           </div>
-        </section>
-
-        <section className="section" id="program">
-          <div className="section-head">
-            <p className="eyebrow">{program.eyebrow}</p>
-            <h2>{program.title}</h2>
-            <p className="section-lead">{program.lead}</p>
-          </div>
-
-          <ol className="module-list">
-            {program.modules.map((module, index) => (
-              <li key={module.title}>
-                <span className="module-number">{number(index)}</span>
-                <div>
-                  <h3>{module.title}</h3>
-                  <p>{module.description}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
         </section>
 
         <section className="section" id="process">

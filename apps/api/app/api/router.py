@@ -1,6 +1,15 @@
 from fastapi import APIRouter
 
-from app.api.routes import account, admin, auth, courses, individual_lessons, teacher
+from app.api.routes import (
+    account,
+    admin,
+    auth,
+    courses,
+    individual_lessons,
+    payments,
+    teacher,
+)
+from app.config import get_settings
 
 router = APIRouter()
 
@@ -12,7 +21,9 @@ async def health() -> dict[str, str]:
 
 router.include_router(auth.router)
 router.include_router(account.router)
-router.include_router(courses.router)
+if get_settings().courses_enabled:
+    router.include_router(courses.router)
 router.include_router(individual_lessons.router)
+router.include_router(payments.router)
 router.include_router(teacher.router)
 router.include_router(admin.router)

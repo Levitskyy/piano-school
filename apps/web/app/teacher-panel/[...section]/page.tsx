@@ -1,7 +1,6 @@
 import { EmptyState } from "@/components/empty-state";
 
 const sectionLabels: Record<string, string> = {
-  submissions: "Домашние задания",
   students: "Ученики",
   lessons: "Занятия",
 };
@@ -25,7 +24,7 @@ export default async function TeacherSectionPage({
 
       <EmptyState
         title="Раздел готовится"
-        text="Данные и действия появятся на следующем этапе. Сейчас панель доступна только преподавателю и администратору."
+        text="Данные по индивидуальным занятиям появятся на следующем этапе. Сейчас панель доступна только преподавателю и администратору."
       />
     </div>
   );

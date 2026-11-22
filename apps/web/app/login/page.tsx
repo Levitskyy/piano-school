@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <AuthShell
       eyebrow="Личный кабинет"
       title="Вход"
-      lead="Курсы, домашние задания и расписание занятий — в одном месте."
+      lead="Расписание занятий, купленные пакеты и статус оплаты — в одном месте."
     >
       <AuthForm mode="login" headingId="main-heading" next={next} />
     </AuthShell>

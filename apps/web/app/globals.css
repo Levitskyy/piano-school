@@ -1674,6 +1674,17 @@ svg {
   border-block-end: 0;
 }
 
+.price-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.price-form input {
+  inline-size: 8.5rem;
+}
+
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -1917,6 +1928,10 @@ svg {
   justify-items: start;
   padding-block-start: 1.5rem;
   border-block-start: 1px solid var(--line);
+}
+
+.booking-actions .field {
+  inline-size: min(100%, 22rem);
 }
 
 .booking-note {

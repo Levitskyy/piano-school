@@ -102,7 +102,7 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
             <Link href={accountHref}>{user ? "Кабинет" : "Войти"}</Link>
           </li>
           <li className="menu-cta-item">
-            <Link className="button button-small header-cta" href="/#formats">
+            <Link className="button button-small header-cta" href="/individual-lessons">
               Записаться
             </Link>
           </li>

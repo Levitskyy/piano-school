@@ -12,10 +12,36 @@ from app.models.individual_lessons import (
 from app.models.user import User, UserRole
 
 
+class FakeYooKassa:
+    def __init__(self) -> None:
+        self.payments: dict[str, dict] = {}
+
+    async def __call__(
+        self,
+        method: str,
+        path: str,
+        *,
+        body: dict | None = None,
+        idempotence_key: str | None = None,
+    ) -> dict:
+        if method == "POST":
+            payment_id = f"pay-{len(self.payments) + 1}"
+            self.payments[payment_id] = {
+                "amount": body["amount"],
+                "metadata": body["metadata"],
+            }
+            return {
+                "id": payment_id,
+                "confirmation": {"confirmation_url": "https://yookassa.test/pay"},
+            }
+        return {**self.payments[path.rsplit("/", 1)[-1]], "status": "succeeded"}
+
+
 async def test_teacher_views_bookings_and_sets_meeting_url(
     client: AsyncClient,
     session_factory: async_sessionmaker[AsyncSession],
     register_payload: dict[str, str],
+    monkeypatch,
 ) -> None:
     now = datetime.now(UTC)
     starts_at = (now + timedelta(days=1)).replace(
@@ -27,6 +53,7 @@ async def test_teacher_views_bookings_and_sets_meeting_url(
             title="Разовый урок",
             lessons_count=1,
             duration_minutes=60,
+            price_minor=150_000,
         )
         slot = LessonSlot(
             starts_at=starts_at,
@@ -39,6 +66,9 @@ async def test_teacher_views_bookings_and_sets_meeting_url(
         offer_id = offer.id
         slot_id = slot.id
 
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+
     registered = await client.post("/auth/register", json=register_payload)
     assert registered.status_code == 201
     student_cookies = dict(client.cookies)
@@ -47,8 +77,21 @@ async def test_teacher_views_bookings_and_sets_meeting_url(
         "/individual-lessons/purchase",
         json={"offer_id": str(offer_id), "slot_id": str(slot_id)},
     )
-    assert purchased.status_code == 200
-    booking_id = purchased.json()["booking"]["id"]
+    assert purchased.status_code == 200, purchased.text
+    payment_id = next(
+        name
+        for name, payment in fake.payments.items()
+        if payment["metadata"]["order_id"] == purchased.json()["order_id"]
+    )
+    webhook = await client.post(
+        "/payments/yookassa/webhook",
+        json={"type": "notification", "object": {"id": payment_id}},
+    )
+    assert webhook.status_code == 204, webhook.text
+
+    account = await client.get("/individual-lessons/account")
+    assert account.status_code == 200
+    booking_id = account.json()["bookings"][0]["id"]
 
     teacher_payload = {
         "name": "Преподаватель",

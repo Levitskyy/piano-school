@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
 
 import { apiErrorMessage } from "@/lib/api-error";
 import {
@@ -56,6 +56,7 @@ export function IndividualLessonBooking({
   const [pageIndex, setPageIndex] = useState(0);
   const [selectedDayLabel, setSelectedDayLabel] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const isPackageMode = Boolean(bookingPackage);
@@ -134,6 +135,55 @@ export function IndividualLessonBooking({
     }
   }
 
+  async function purchase() {
+    setError(null);
+    if (!slotId) {
+      setError("Выберите время занятия.");
+      return;
+    }
+    if (!offerId) {
+      setError("Выберите формат занятия.");
+      return;
+    }
+    if (!isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent("/individual-lessons")}`);
+      return;
+    }
+
+    setPending(true);
+    try {
+      const response = await fetch("/api/individual-lessons/purchase", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          offer_id: offerId,
+          slot_id: slotId,
+          promo_code: promoCode.trim() || null,
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setError(apiErrorMessage(payload));
+        return;
+      }
+      const data = await response.json();
+      if (typeof data.confirmation_url !== "string") {
+        setError("Не удалось получить ссылку на оплату. Попробуйте ещё раз.");
+        return;
+      }
+      window.location.assign(data.confirmation_url);
+    } catch {
+      setError("Сервис временно недоступен. Попробуйте ещё раз.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function onSubmitPurchase(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void purchase();
+  }
+
   return (
     <div className="lesson-booking">
       {isPackageMode && bookingPackage ? (
@@ -156,7 +206,7 @@ export function IndividualLessonBooking({
             <span className="step-number">1</span>
             <div>
               <h2>Выберите формат</h2>
-              <p>Занятия идут по 60 минут. Цены пока уточняются.</p>
+              <p>Занятия идут по 60 минут. Цена указана в каждом формате.</p>
             </div>
           </div>
           <div className="offer-grid" role="radiogroup" aria-label="Формат занятий">
@@ -299,36 +349,49 @@ export function IndividualLessonBooking({
         </p>
       </div>
 
-      <div className="booking-actions">
-        <button
-          className="button"
-          type="button"
-          disabled={pending || !slotId || (!isPackageMode && !offerId)}
-          onClick={() =>
-            isPackageMode && bookingPackage
-              ? send("book", {
-                  package_id: bookingPackage.id,
-                  slot_id: slotId,
-                })
-              : send("purchase", {
-                  offer_id: offerId,
-                  slot_id: slotId,
-                })
-          }
-        >
-          {isPackageMode
-            ? "Записаться на урок"
-            : isAuthenticated
-              ? "Купить и записаться"
-              : "Войти и записаться"}
-        </button>
-        {!isPackageMode ? (
+      {isPackageMode ? (
+        <div className="booking-actions">
+          <button
+            className="button"
+            type="button"
+            disabled={pending || !slotId || !bookingPackage}
+            onClick={() =>
+              bookingPackage &&
+              send("book", { package_id: bookingPackage.id, slot_id: slotId })
+            }
+          >
+            Записаться на урок
+          </button>
+        </div>
+      ) : (
+        <form className="booking-actions" onSubmit={onSubmitPurchase}>
+          <div className="field">
+            <label htmlFor="promo-code">Промокод</label>
+            <input
+              id="promo-code"
+              name="promo_code"
+              type="text"
+              value={promoCode}
+              onChange={(event) => setPromoCode(event.target.value)}
+              aria-describedby="promo-hint"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={32}
+            />
+            <p className="field-hint" id="promo-hint">
+              Если у вас есть код, введите его до оплаты. Один код действует на одну покупку.
+            </p>
+          </div>
+          <button className="button" type="submit" disabled={pending || !slotId || !offerId}>
+            {isAuthenticated ? "Перейти к оплате" : "Войти и оплатить"}
+          </button>
           <p className="booking-note">
-            Тестовый режим: слот подтверждается сразу, реальная оплата не
-            списывается. Ссылку на встречу преподаватель добавит в кабинете.
+            Оплата через ЮKassa. Выбранный слот закрепляется за вами на время оплаты;
+            занятие подтвердится после поступления платежа.
           </p>
-        ) : null}
-      </div>
+        </form>
+      )}
 
       {!isPackageMode && availablePackages.length > 0 ? (
         <div className="booking-step">

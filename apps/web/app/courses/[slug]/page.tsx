@@ -13,12 +13,14 @@ import {
   getPublicCourse,
   levelLabel,
 } from "@/lib/catalog";
+import { coursesEnabled } from "@/lib/feature-flags";
 
 type CoursePageProps = {
   params: Promise<{ slug: string }>;
 };
 
 export async function generateMetadata({ params }: CoursePageProps): Promise<Metadata> {
+  if (!coursesEnabled) return { title: "Страница не найдена" };
   const { slug } = await params;
   const course = await getPublicCourse(slug);
   if (!course) return { title: "Курс не найден" };
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: CoursePageProps): Promise<Met
 }
 
 export default async function CoursePage({ params }: CoursePageProps) {
+  if (!coursesEnabled) notFound();
   const { slug } = await params;
   const course = await getPublicCourse(slug);
   if (!course) notFound();

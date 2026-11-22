@@ -1,4 +1,7 @@
+import { notFound } from "next/navigation";
+
 import { EmptyState } from "@/components/empty-state";
+import { coursesEnabled } from "@/lib/feature-flags";
 
 const sectionLabels: Record<string, string> = {
   courses: "Курсы",
@@ -13,6 +16,7 @@ type AdminSectionPageProps = {
 
 export default async function AdminSectionPage({ params }: AdminSectionPageProps) {
   const { section } = await params;
+  if (!coursesEnabled && section[0] === "courses") notFound();
   const title = sectionLabels[section[0]] ?? "Раздел администратора";
 
   return (
@@ -24,7 +28,7 @@ export default async function AdminSectionPage({ params }: AdminSectionPageProps
 
       <EmptyState
         title="Раздел готовится"
-        text="Управление появится на следующем этапе вместе с моделями курсов, продуктов и заказов."
+        text="Управление появится на следующем этапе вместе с моделями продуктов и заказов."
       />
     </div>
   );

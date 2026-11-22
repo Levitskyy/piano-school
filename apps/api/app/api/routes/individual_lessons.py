@@ -10,10 +10,10 @@ from app.schemas.individual_lessons import (
     IndividualLessonOfferOut,
     LessonBookingOut,
     LessonSlotOut,
-    PurchaseIndividualLessonIn,
-    PurchaseResultOut,
 )
+from app.schemas.payments import PurchasePaymentIn, PurchasePaymentOut
 from app.services import individual_lessons as individual_lessons_service
+from app.services import payments as payments_service
 
 router = APIRouter(prefix="/individual-lessons", tags=["individual-lessons"])
 
@@ -31,6 +31,7 @@ async def list_slots(
     user: User | None = Depends(get_optional_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[LessonSlotOut]:
+    await payments_service.release_expired_orders(session)
     slots = await individual_lessons_service.list_free_slots(session, user)
     return [LessonSlotOut(**slot) for slot in slots]
 
@@ -43,22 +44,36 @@ async def get_account_lessons(
     return await individual_lessons_service.get_account_lessons(session, user)
 
 
-@router.post("/purchase", response_model=PurchaseResultOut)
+@router.post("/purchase", response_model=PurchasePaymentOut)
 async def purchase_lesson(
-    payload: PurchaseIndividualLessonIn,
+    payload: PurchasePaymentIn,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> PurchaseResultOut:
+) -> PurchasePaymentOut:
+    await payments_service.release_expired_orders(session)
     try:
-        booking, package = await individual_lessons_service.purchase_and_book(
-            session, user, payload.offer_id, payload.slot_id
+        order, confirmation_url = await payments_service.create_purchase_payment(
+            session, user, payload.offer_id, payload.slot_id, payload.promo_code
         )
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except individual_lessons_service.SlotUnavailableError as exc:
+    except (
+        individual_lessons_service.SlotUnavailableError,
+        payments_service.PromoCodeError,
+        payments_service.PriceNotSetError,
+    ) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except payments_service.PaymentError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
-    return PurchaseResultOut(booking=booking, package=package)
+    return PurchasePaymentOut(
+        order_id=order.id,
+        status=order.status,
+        total_minor=order.total_minor,
+        discount_minor=order.discount_minor,
+        currency=order.currency,
+        confirmation_url=confirmation_url,
+    )
 
 
 @router.post("/book", response_model=LessonBookingOut)

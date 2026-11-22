@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.config import get_settings
 from app.db import get_session
 from app.models.user import User
 from app.schemas.auth import ProfileUpdateIn, UserOut
@@ -11,7 +12,16 @@ from app.services import courses as course_service
 router = APIRouter(prefix="/account", tags=["account"])
 
 
-@router.get("/courses", response_model=list[AccountCourseOut])
+def require_courses_enabled() -> None:
+    if not get_settings().courses_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Не найдено")
+
+
+@router.get(
+    "/courses",
+    response_model=list[AccountCourseOut],
+    dependencies=[Depends(require_courses_enabled)],
+)
 async def list_courses(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),

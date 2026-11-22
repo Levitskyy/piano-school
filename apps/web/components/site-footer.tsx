@@ -39,7 +39,7 @@ export function SiteFooter() {
         </nav>
       </div>
 
-      <p className="footer-note">© 2026 {site.name}. Сайт готовится к запуску.</p>
+      <p className="footer-note">© 2026 {site.name}. Индивидуальные занятия онлайн.</p>
     </footer>
   );
 }

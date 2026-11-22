@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 from datetime import UTC, datetime, time, timedelta
+from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
@@ -26,6 +27,7 @@ from app.models.individual_lessons import (
     LessonSlotStatus,
 )
 from app.models.user import User, UserRole
+from app.services import admin as admin_service
 from app.services.auth import normalize_email
 
 DEMO_COURSE_SLUG = "fortepiano"
@@ -270,6 +272,34 @@ async def seed_lesson_slots(days: int = 30) -> None:
         print(f"Создано слотов: {len(new_slots)}")
 
 
+async def create_promo_code(percent: str, code: str | None = None) -> None:
+    try:
+        value = Decimal(percent)
+    except InvalidOperation as exc:
+        raise SystemExit(f"Некорректный процент: {percent}") from exc
+
+    async with SessionLocal() as session:
+        try:
+            promo = await admin_service.create_promo_code(session, value, code)
+        except (ValueError, admin_service.PromoCodeExistsError) as exc:
+            raise SystemExit(str(exc)) from exc
+    print(f"Создан промокод {promo.code}: скидка {promo.discount_percent}%")
+
+
+async def set_offer_price(slug: str, price: str) -> None:
+    try:
+        value = Decimal(price)
+    except InvalidOperation as exc:
+        raise SystemExit(f"Некорректная цена: {price}") from exc
+
+    async with SessionLocal() as session:
+        try:
+            offer = await admin_service.set_offer_price(session, slug, value)
+        except (ValueError, admin_service.OfferNotFoundError) as exc:
+            raise SystemExit(str(exc)) from exc
+    print(f"{slug}: цена {Decimal(offer.price_minor) / 100} ₽")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Piano School management commands")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -290,6 +320,14 @@ def main() -> None:
     )
     slots_parser.add_argument("--days", type=int, default=30)
 
+    promo_parser = subparsers.add_parser("create-promo-code", help="Создать одноразовый промокод")
+    promo_parser.add_argument("--percent", required=True, help="Процент скидки, например 33.33")
+    promo_parser.add_argument("--code", help="Своё название кода; без него будет сгенерировано")
+
+    price_parser = subparsers.add_parser("set-offer-price", help="Задать цену тарифа в рублях")
+    price_parser.add_argument("--slug", required=True)
+    price_parser.add_argument("--price", required=True)
+
     args = parser.parse_args()
     if args.command == "set-role":
         asyncio.run(set_role(args.email, args.role))
@@ -301,6 +339,10 @@ def main() -> None:
         asyncio.run(seed_individual_lesson_offers())
     elif args.command == "seed-lesson-slots":
         asyncio.run(seed_lesson_slots(args.days))
+    elif args.command == "create-promo-code":
+        asyncio.run(create_promo_code(args.percent, args.code))
+    elif args.command == "set-offer-price":
+        asyncio.run(set_offer_price(args.slug, args.price))
 
 
 if __name__ == "__main__":

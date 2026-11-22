@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { EmptyState } from "@/components/empty-state";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getPublicCourses, levelLabel } from "@/lib/catalog";
+import { coursesEnabled } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   title: "Курсы",
@@ -12,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CoursesPage() {
+  if (!coursesEnabled) notFound();
   const courses = await getPublicCourses();
 
   return (

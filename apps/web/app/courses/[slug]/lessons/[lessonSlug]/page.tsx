@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { fetchWithSession } from "@/lib/auth";
 import type { LessonDetail } from "@/lib/catalog";
+import { coursesEnabled } from "@/lib/feature-flags";
 
 type LessonPageProps = {
   params: Promise<{ slug: string; lessonSlug: string }>;
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LessonPage({ params }: LessonPageProps) {
+  if (!coursesEnabled) notFound();
   const { slug, lessonSlug } = await params;
   const nextPath = `/courses/${slug}/lessons/${lessonSlug}`;
 

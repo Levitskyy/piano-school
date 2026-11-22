@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://piano:piano@localhost:5432/piano_school"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: str = "http://localhost:3000"
+    courses_enabled: bool = True
 
     frontend_url: str = "http://localhost:3000"
     session_cookie_name: str = "ps_session"
@@ -33,7 +34,9 @@ class Settings(BaseSettings):
 
     yookassa_shop_id: str = ""
     yookassa_secret_key: str = ""
+    yookassa_api_url: str = "https://api.yookassa.ru/v3"
     yookassa_return_url: str = "http://localhost:3000"
+    payment_reservation_minutes: int = 15
 
     @property
     def cors_origins_list(self) -> list[str]:

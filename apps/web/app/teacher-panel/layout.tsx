@@ -4,9 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 
 const teacherNav = [
   { href: "/teacher-panel", label: "Обзор" },
-  { href: "/teacher-panel/submissions", label: "Домашние задания" },
-  { href: "/teacher-panel/students", label: "Ученики" },
   { href: "/teacher-panel/lessons", label: "Занятия" },
+  { href: "/teacher-panel/students", label: "Ученики" },
 ];
 
 export default async function TeacherPanelLayout({

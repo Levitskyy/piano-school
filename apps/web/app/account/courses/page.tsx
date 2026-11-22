@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, getAccountCourses } from "@/lib/catalog";
+import { coursesEnabled } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   title: "Мои курсы",
 };
 
 export default async function AccountCoursesPage() {
+  if (!coursesEnabled) notFound();
   const user = await getCurrentUser();
   if (!user) return <ClientRedirect to="/login?next=/account/courses" />;
 

@@ -1,12 +1,11 @@
-import { ClientRedirect } from "@/components/client-redirect";
+import Link from "next/link";
+
 import { EmptyState } from "@/components/empty-state";
 
 const sectionLabels: Record<string, string> = {
   "individual-lessons": "Индивидуальные занятия",
-  orders: "Заказы",
+  profile: "Профиль",
 };
-
-const mergedSections = new Set(["submissions", "mentorship"]);
 
 type AccountSectionPageProps = {
   params: Promise<{ section: string[] }>;
@@ -16,13 +15,7 @@ export default async function AccountSectionPage({
   params,
 }: AccountSectionPageProps) {
   const { section } = await params;
-  const key = section[0];
-
-  if (mergedSections.has(key)) {
-    return <ClientRedirect to="/account/courses" />;
-  }
-
-  const title = sectionLabels[key] ?? "Раздел кабинета";
+  const title = sectionLabels[section[0]] ?? "Раздел кабинета";
 
   return (
     <div className="panel-page">
@@ -33,7 +26,12 @@ export default async function AccountSectionPage({
 
       <EmptyState
         title="Раздел готовится"
-        text="Функциональность появится на следующем этапе. Сейчас важно, что вход, роли и защита кабинета уже работают."
+        text="Здесь появятся данные по занятиям и профилю. Пока вход, роли и защита кабинета уже работают."
+        action={
+          <Link className="button" href="/individual-lessons">
+            Выбрать занятие
+          </Link>
+        }
       />
     </div>
   );

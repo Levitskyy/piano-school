@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 const adminNav = [
   { href: "/admin", label: "Обзор" },
   { href: "/admin/users", label: "Пользователи" },
-  { href: "/admin/courses", label: "Курсы" },
-  { href: "/admin/products", label: "Продукты" },
+  { href: "/admin/products", label: "Цены" },
+  { href: "/admin/promo-codes", label: "Промокоды" },
   { href: "/admin/orders", label: "Заказы" },
   { href: "/admin/settings", label: "Настройки" },
 ];
@@ -24,9 +24,5 @@ export default async function AdminLayout({
     );
   }
 
-  return (
-    <PanelShell user={user} nav={adminNav}>
-      {children}
-    </PanelShell>
-  );
+  return <PanelShell user={user} nav={adminNav}>{children}</PanelShell>;
 }

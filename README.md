@@ -57,7 +57,26 @@ make dev-stack      # БД + API + web в фоне
 - `/courses/[slug]/lessons/[lessonSlug]` — урок (нужен доступ);
 - `/account` и `/account/courses` — кабинет ученика;
 - `/teacher-panel` — панель преподавателя;
-- `/admin` — панель администратора.
+- `/admin` — панель администратора;
+- `/payment/success?order_id=...` — результат оплаты (статус берётся из API, а не из адреса страницы).
+
+Запуск только с индивидуальными занятиями: `COURSES_ENABLED=false` в `.env` убирает
+каталог, страницы и API курсов (404), а также ссылки на них из меню. Отдельная ветка
+для этого не нужна.
+
+Оплата уроков идёт через ЮKassa (RUB). Перед приёмом платежей задайте цены и заполните
+ключи тестового магазина:
+
+```bash
+make set-price slug=single price=1500
+make promo-code percent=33.33   # 1500 ₽ → 1000 ₽, код одноразовый
+```
+
+Промокод вводится на странице `/individual-lessons` перед переходом к оплате.
+ЮKassa получает уже итоговую сумму; чеки для самозанятого настраиваются в кабинете ЮKassa.
+
+Цены и промокоды можно менять и в админке: `/admin/products` и `/admin/promo-codes`
+(нужна роль `admin`). CLI из таблицы ниже остаётся для автоматизации.
 
 Email-провайдер выбран: Unisender Go. В `local` ссылка восстановления возвращается в ответе API и дублируется в консоль. В production письмо отправляется через Unisender Go, если заданы `EMAIL_PROVIDER=unisender`, `UNISENDER_API_KEY` и `EMAIL_FROM`; иначе восстановление вернёт 503.
 
@@ -102,6 +121,8 @@ docker compose -f infra/docker-compose.yml up --build
 | `make seed-demo` | Создать демонстрационный курс |
 | `make seed-lessons` | Создать тарифы индивидуальных занятий (1/4/8 уроков) |
 | `make seed-slots days=30` | Создать свободные слоты расписания |
+| `make set-price slug=single price=1500` | Задать цену тарифа в рублях |
+| `make promo-code percent=33.33 [code=...]` | Создать одноразовый процентный промокод |
 | `make grant-access email=... course=... offer=...` | Вручную выдать доступ к курсу |
 | `make lint` | Ruff + ESLint |
 | `make test` | pytest |

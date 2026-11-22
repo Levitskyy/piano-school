@@ -6,6 +6,7 @@ import { ClientRedirect } from "@/components/client-redirect";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatDuration, getAccountCourses, getPublicCourse } from "@/lib/catalog";
+import { coursesEnabled } from "@/lib/feature-flags";
 
 type AccountCoursePageProps = {
   params: Promise<{ slug: string }>;
@@ -14,12 +15,14 @@ type AccountCoursePageProps = {
 export async function generateMetadata({
   params,
 }: AccountCoursePageProps): Promise<Metadata> {
+  if (!coursesEnabled) return { title: "Страница не найдена" };
   const { slug } = await params;
   const course = await getPublicCourse(slug);
   return { title: course?.title ?? "Курс не найден" };
 }
 
 export default async function AccountCoursePage({ params }: AccountCoursePageProps) {
+  if (!coursesEnabled) notFound();
   const { slug } = await params;
   const user = await getCurrentUser();
   if (!user) return <ClientRedirect to={`/login?next=/account/courses/${slug}`} />;

@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncIterator
 
 import pytest
@@ -10,9 +11,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import StaticPool
 
-from app.db import get_session
-from app.main import create_app
-from app.models import Base
+# Тесты проверяют и курсовые эндпоинты, поэтому флаг из локального .env на них не влияет.
+os.environ["COURSES_ENABLED"] = "true"
+
+from app.db import get_session  # noqa: E402
+from app.main import create_app  # noqa: E402
+from app.models import Base  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
