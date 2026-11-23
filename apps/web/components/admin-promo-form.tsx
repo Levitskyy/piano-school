@@ -3,11 +3,13 @@
 import { useId, useState, type FormEvent } from "react";
 
 import { apiErrorMessage } from "@/lib/api-error";
+import type { IndividualLessonOffer } from "@/lib/individual-lessons-shared";
 
 type PromoCode = {
   id: string;
   code: string;
   discount_percent: string | number;
+  offer_id: string | null;
   is_active: boolean;
   used_at: string | null;
   created_at: string;
@@ -15,6 +17,7 @@ type PromoCode = {
 
 type AdminPromoFormProps = {
   promoCodes: PromoCode[];
+  offers: IndividualLessonOffer[];
 };
 
 function promoStatus(promo: PromoCode): string {
@@ -28,14 +31,20 @@ function formatPercent(value: string | number): string {
   );
 }
 
-export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps) {
+function offerTitle(offers: IndividualLessonOffer[], offerId: string | null): string {
+  return offers.find((offer) => offer.id === offerId)?.title ?? "—";
+}
+
+export function AdminPromoForm({ promoCodes: initialCodes, offers }: AdminPromoFormProps) {
   const [codes, setCodes] = useState(initialCodes);
   const [percent, setPercent] = useState("33.33");
+  const [offerSlug, setOfferSlug] = useState("");
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const percentId = useId();
+  const offerId = useId();
   const codeId = useId();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -50,6 +59,7 @@ export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           percent,
+          offer_slug: offerSlug,
           code: code.trim() || null,
         }),
       });
@@ -65,9 +75,10 @@ export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps
       setMessage(
         `Промокод ${created.code} создан: скидка ${formatPercent(
           created.discount_percent,
-        )}%. Код одноразовый.`,
+        )}%. Код одноразовый и действует только на выбранный тариф.`,
       );
       setPercent("33.33");
+      setOfferSlug("");
       setCode("");
     } catch {
       setError("Не удалось создать промокод. Попробуйте ещё раз.");
@@ -82,8 +93,8 @@ export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps
         <div className="panel-section-head">
           <h2 id="promo-create-title">Новый промокод</h2>
           <p className="muted">
-            Скидка в процентах, один код на одну покупку. Без названия код сгенерируется
-            автоматически.
+            Скидка в процентах, один код на одну покупку и только на выбранный тариф.
+            Без названия код сгенерируется автоматически.
           </p>
         </div>
 
@@ -102,6 +113,27 @@ export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps
               onChange={(event) => setPercent(event.target.value)}
             />
             <p className="field-hint">Например, 33,33 — с 1 500 ₽ получится 1 000 ₽.</p>
+          </div>
+
+          <div className="field">
+            <label htmlFor={offerId}>Товар</label>
+            <select
+              id={offerId}
+              name="offer_slug"
+              required
+              value={offerSlug}
+              onChange={(event) => setOfferSlug(event.target.value)}
+            >
+              <option value="" disabled>
+                Выберите тариф
+              </option>
+              {offers.map((offer) => (
+                <option key={offer.id} value={offer.slug}>
+                  {offer.title}
+                </option>
+              ))}
+            </select>
+            <p className="field-hint">Код действует только на выбранный тариф.</p>
           </div>
 
           <div className="field">
@@ -140,6 +172,7 @@ export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps
               <thead>
                 <tr>
                   <th scope="col">Код</th>
+                  <th scope="col">Товар</th>
                   <th scope="col">Скидка</th>
                   <th scope="col">Статус</th>
                   <th scope="col">Создан</th>
@@ -149,6 +182,7 @@ export function AdminPromoForm({ promoCodes: initialCodes }: AdminPromoFormProps
                 {codes.map((promo) => (
                   <tr key={promo.id}>
                     <th scope="row">{promo.code}</th>
+                    <td>{offerTitle(offers, promo.offer_id)}</td>
                     <td>{formatPercent(promo.discount_percent)}%</td>
                     <td>{promoStatus(promo)}</td>
                     <td>{promo.created_at.slice(0, 10)}</td>

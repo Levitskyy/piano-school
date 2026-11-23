@@ -11,6 +11,7 @@ class OfferPriceIn(BaseModel):
 
 class PromoCodeIn(BaseModel):
     percent: Decimal = Field(gt=0, le=Decimal("100"))
+    offer_slug: str = Field(min_length=1, max_length=80)
     code: str | None = Field(default=None, max_length=32)
 
 
@@ -20,6 +21,7 @@ class PromoCodeOut(BaseModel):
     id: UUID
     code: str
     discount_percent: Decimal
+    offer_id: UUID | None
     is_active: bool
     used_at: datetime | None
     created_at: datetime

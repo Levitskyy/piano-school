@@ -88,21 +88,31 @@ async def test_admin_prices_and_promo_codes(
 
     created = await client.post(
         "/admin/promo-codes",
-        json={"percent": "33.33", "code": "admin33"},
+        json={"percent": "33.33", "offer_slug": "single", "code": "admin33"},
     )
     assert created.status_code == 201, created.text
     assert created.json()["code"] == "ADMIN33"
     assert Decimal(created.json()["discount_percent"]) == Decimal("33.33")
+    assert created.json()["offer_id"] == single["id"]
 
     duplicate = await client.post(
         "/admin/promo-codes",
-        json={"percent": "10", "code": "ADMIN33"},
+        json={"percent": "10", "offer_slug": "single", "code": "ADMIN33"},
     )
     assert duplicate.status_code == 409
 
-    generated = await client.post("/admin/promo-codes", json={"percent": "15"})
+    generated = await client.post(
+        "/admin/promo-codes",
+        json={"percent": "15", "offer_slug": "package-4"},
+    )
     assert generated.status_code == 201, generated.text
     assert len(generated.json()["code"]) == 8
+
+    unknown_offer = await client.post(
+        "/admin/promo-codes",
+        json={"percent": "10", "offer_slug": "missing"},
+    )
+    assert unknown_offer.status_code == 404
 
     listed = await client.get("/admin/promo-codes")
     assert listed.status_code == 200
@@ -111,6 +121,6 @@ async def test_admin_prices_and_promo_codes(
 
     bad_percent = await client.post(
         "/admin/promo-codes",
-        json={"percent": "0", "code": "BAD"},
+        json={"percent": "0", "offer_slug": "single", "code": "BAD"},
     )
     assert bad_percent.status_code == 422

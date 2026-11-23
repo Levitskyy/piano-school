@@ -244,7 +244,7 @@ async def test_one_time_promo_code_discounts_payment(
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, one_id, _, two_id, _ = await seed_offers_and_slots(session_factory)
     async with session_factory() as session:
-        session.add(PromoCode(code="PERVIY", discount_percent=33.33))
+        session.add(PromoCode(code="PERVIY", discount_percent=33.33, offer_id=single_id))
         await session.commit()
 
     await client.post("/auth/register", json=register_payload)
@@ -263,6 +263,42 @@ async def test_one_time_promo_code_discounts_payment(
         },
     )
     assert reused.status_code == 409
+
+
+async def test_promo_code_does_not_apply_to_another_offer(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    register_payload: dict[str, str],
+    monkeypatch,
+) -> None:
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+    single_id, package_id, one_id, _, two_id, _ = await seed_offers_and_slots(session_factory)
+    async with session_factory() as session:
+        session.add(PromoCode(code="BESPLATNO", discount_percent=100, offer_id=single_id))
+        await session.commit()
+
+    await client.post("/auth/register", json=register_payload)
+
+    wrong_offer = await client.post(
+        "/individual-lessons/purchase",
+        json={
+            "offer_id": str(package_id),
+            "slot_id": str(one_id),
+            "promo_code": "BESPLATNO",
+        },
+    )
+    assert wrong_offer.status_code == 409
+
+    async with session_factory() as session:
+        promo = await session.scalar(select(PromoCode).where(PromoCode.code == "BESPLATNO"))
+        assert promo is not None
+        assert promo.used_at is None
+        assert promo.reserved_order_id is None
+        assert await session.scalar(select(PurchaseOrder)) is None
+
+    right_offer = await purchase(client, single_id, one_id, "BESPLATNO")
+    assert right_offer["total_minor"] == 0
 
 
 async def test_courses_are_hidden_by_flag(
@@ -432,7 +468,7 @@ async def test_promo_code_is_reserved_for_pending_order(
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, one_id, _, two_id, _ = await seed_offers_and_slots(session_factory)
     async with session_factory() as session:
-        session.add(PromoCode(code="PERVIY", discount_percent=33.33))
+        session.add(PromoCode(code="PERVIY", discount_percent=33.33, offer_id=single_id))
         await session.commit()
 
     await client.post("/auth/register", json=register_payload)
@@ -473,7 +509,7 @@ async def test_canceled_payment_releases_slot_and_promo(
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
     async with session_factory() as session:
-        session.add(PromoCode(code="PERVIY", discount_percent=33.33))
+        session.add(PromoCode(code="PERVIY", discount_percent=33.33, offer_id=single_id))
         await session.commit()
 
     await client.post("/auth/register", json=register_payload)

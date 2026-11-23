@@ -76,11 +76,18 @@ async def list_promo_codes(session: AsyncSession) -> list[PromoCode]:
 
 
 async def create_promo_code(
-    session: AsyncSession, percent: Decimal, code: str | None = None
+    session: AsyncSession, percent: Decimal, offer_slug: str, code: str | None = None
 ) -> PromoCode:
+    offer = await session.scalar(
+        select(IndividualLessonOffer).where(IndividualLessonOffer.slug == offer_slug.strip())
+    )
+    if offer is None:
+        raise OfferNotFoundError(f"Тариф не найден: {offer_slug}")
+
     promo = PromoCode(
         code=normalize_code(code),
         discount_percent=normalize_percent(percent),
+        offer_id=offer.id,
     )
     session.add(promo)
     try:

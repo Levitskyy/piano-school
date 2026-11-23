@@ -69,10 +69,11 @@ make dev-stack      # БД + API + web в фоне
 
 ```bash
 make set-price slug=single price=1500
-make promo-code percent=33.33   # 1500 ₽ → 1000 ₽, код одноразовый
+make promo-code percent=33.33 offer=single   # 1500 ₽ → 1000 ₽, только разовый урок
 ```
 
-Промокод вводится на странице `/individual-lessons` перед переходом к оплате.
+Промокод вводится на странице `/individual-lessons` перед переходом к оплате и действует
+только на тариф, выбранный при создании (`single`, `package-4`, `package-8`).
 ЮKassa получает уже итоговую сумму; чеки для самозанятого настраиваются в кабинете ЮKassa.
 
 Цены и промокоды можно менять и в админке: `/admin/products` и `/admin/promo-codes`
@@ -122,7 +123,7 @@ docker compose -f infra/docker-compose.yml up --build
 | `make seed-lessons` | Создать тарифы индивидуальных занятий (1/4/8 уроков) |
 | `make seed-slots days=30` | Создать свободные слоты расписания |
 | `make set-price slug=single price=1500` | Задать цену тарифа в рублях |
-| `make promo-code percent=33.33 [code=...]` | Создать одноразовый процентный промокод |
+| `make promo-code percent=33.33 offer=single [code=...]` | Создать одноразовый процентный промокод на тариф |
 | `make grant-access email=... course=... offer=...` | Вручную выдать доступ к курсу |
 | `make lint` | Ruff + ESLint |
 | `make test` | pytest |

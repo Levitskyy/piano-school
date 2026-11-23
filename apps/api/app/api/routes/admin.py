@@ -73,8 +73,10 @@ async def create_promo_code(
 ) -> PromoCodeOut:
     try:
         promo = await admin_service.create_promo_code(
-            session, payload.percent, payload.code
+            session, payload.percent, payload.offer_slug, payload.code
         )
+    except admin_service.OfferNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except admin_service.PromoCodeExistsError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:

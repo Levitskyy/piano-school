@@ -426,7 +426,8 @@ export function IndividualLessonBooking({
               maxLength={32}
             />
             <p className="field-hint" id="promo-hint">
-              Если у вас есть код, введите его до оплаты. Один код действует на одну покупку.
+              Если у вас есть код, введите его до оплаты. Код действует только на выбранный
+              тариф и только на одну покупку.
             </p>
           </div>
           <button className="button" type="submit" disabled={pending || !slotId || !offerId}>

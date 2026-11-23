@@ -19,7 +19,7 @@ help:
 	@echo "seed-lessons — создать тарифы индивидуальных занятий"
 	@echo "seed-slots   — создать свободные слоты: make seed-slots days=30"
 	@echo "set-price    — цена тарифа: make set-price slug=single price=1500"
-	@echo "promo-code   — одноразовый код: make promo-code percent=33.33 [code=...]"
+	@echo "promo-code   — код на тариф: make promo-code percent=33.33 offer=single [code=...]"
 	@echo "lint         — Ruff + ESLint"
 	@echo "test         — pytest"
 	@echo "check        — lint + test + typecheck"
@@ -74,7 +74,7 @@ set-price:
 	cd apps/api && uv run python -m app.manage set-offer-price --slug "$(slug)" --price "$(price)"
 
 promo-code:
-	cd apps/api && uv run python -m app.manage create-promo-code --percent "$(percent)" $(if $(code),--code "$(code)")
+	cd apps/api && uv run python -m app.manage create-promo-code --percent "$(percent)" --offer "$(offer)" $(if $(code),--code "$(code)")
 
 lint:
 	cd apps/api && uv run ruff check .

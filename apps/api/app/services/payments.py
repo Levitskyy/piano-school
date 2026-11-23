@@ -331,6 +331,8 @@ async def create_purchase_payment(
         )
         if promo is None or not promo.is_active or promo.used_at is not None:
             raise PromoCodeError("Промокод не найден или уже использован")
+        if promo.offer_id != offer.id:
+            raise PromoCodeError("Промокод не действует на этот тариф")
         if promo.reserved_order_id is not None:
             reserved = await session.get(PurchaseOrder, promo.reserved_order_id)
             if (

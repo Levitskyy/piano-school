@@ -272,7 +272,9 @@ async def seed_lesson_slots(days: int = 30) -> None:
         print(f"Создано слотов: {len(new_slots)}")
 
 
-async def create_promo_code(percent: str, code: str | None = None) -> None:
+async def create_promo_code(
+    percent: str, offer_slug: str, code: str | None = None
+) -> None:
     try:
         value = Decimal(percent)
     except InvalidOperation as exc:
@@ -280,10 +282,14 @@ async def create_promo_code(percent: str, code: str | None = None) -> None:
 
     async with SessionLocal() as session:
         try:
-            promo = await admin_service.create_promo_code(session, value, code)
-        except (ValueError, admin_service.PromoCodeExistsError) as exc:
+            promo = await admin_service.create_promo_code(session, value, offer_slug, code)
+        except (
+            ValueError,
+            admin_service.OfferNotFoundError,
+            admin_service.PromoCodeExistsError,
+        ) as exc:
             raise SystemExit(str(exc)) from exc
-    print(f"Создан промокод {promo.code}: скидка {promo.discount_percent}%")
+    print(f"Создан промокод {promo.code}: скидка {promo.discount_percent}% на {offer_slug}")
 
 
 async def set_offer_price(slug: str, price: str) -> None:
@@ -322,6 +328,9 @@ def main() -> None:
 
     promo_parser = subparsers.add_parser("create-promo-code", help="Создать одноразовый промокод")
     promo_parser.add_argument("--percent", required=True, help="Процент скидки, например 33.33")
+    promo_parser.add_argument(
+        "--offer", required=True, help="Тариф: single, package-4 или package-8"
+    )
     promo_parser.add_argument("--code", help="Своё название кода; без него будет сгенерировано")
 
     price_parser = subparsers.add_parser("set-offer-price", help="Задать цену тарифа в рублях")
@@ -340,7 +349,7 @@ def main() -> None:
     elif args.command == "seed-lesson-slots":
         asyncio.run(seed_lesson_slots(args.days))
     elif args.command == "create-promo-code":
-        asyncio.run(create_promo_code(args.percent, args.code))
+        asyncio.run(create_promo_code(args.percent, args.offer, args.code))
     elif args.command == "set-offer-price":
         asyncio.run(set_offer_price(args.slug, args.price))
 
