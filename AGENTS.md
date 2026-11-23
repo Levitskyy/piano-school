@@ -15,6 +15,7 @@
 - **Подтверждённый стек:** Next.js (React, TypeScript) + FastAPI (Python, Pydantic, OpenAPI), PostgreSQL + SQLAlchemy/Alembic, Redis + ARQ, S3-хранилище, HLS-видео, REST + типизированный TS-клиент по OpenAPI. Каркас уже поднят: см. [README.md](README.md).
 - **Дизайн:** минимализм, академичный классический стиль, засечки в заголовках, сдержанная палитра, много воздуха, без визуального шума.
 - **Фундамент зафиксирован 18.11.2026:** [docs/project-foundation.md](docs/project-foundation.md). Это единственный источник утверждённых решений.
+- **Прод развёрнут на VPS** (`193.233.88.115`, код в `/opt/piano-school`, Docker Compose + nginx). Изменения попадают на сервер **только через merge PR в `master`**: CI проверяет коммит, затем workflow `Deploy to VPS` сам подтягивает его и перезапускает стек. Подробности — [docs/development-workflow.md](docs/development-workflow.md) и [docs/production-deployment.md](docs/production-deployment.md).
 
 ## Приоритет MVP (из брифа)
 
