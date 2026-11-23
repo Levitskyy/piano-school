@@ -53,8 +53,9 @@ jobs:
             cd /opt/piano-school
 
             # Подтягиваем именно тот коммит, который прошёл проверки в CI.
+            # -B master: перезаписываем локальную ветку (в т.ч. при detached HEAD).
             git fetch origin "${{ github.sha }}"
-            git checkout -f "${{ github.sha }}"
+            git checkout -B master "${{ github.sha }}"
 
             # .env, самоподписанный сертификат и логи остаются на сервере
             # (они в .gitignore и не перезаписываются при checkout).

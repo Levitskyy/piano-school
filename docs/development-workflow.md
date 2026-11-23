@@ -47,6 +47,17 @@ Workflow `.github/workflows/deploy.yml`:
 - Если меняете `docker-compose.yml` или `nginx.conf`, деплой сам перезапустит nginx и остальные сервисы.
 - Ветку после мерджа можно удалить (кнопка на GitHub или `git branch -d <branch>` локально).
 
+## Если GitHub недоступен из браузера
+
+Проверить деплой можно прямо с сервера:
+
+```bash
+ssh root@193.233.88.115
+cd /opt/piano-school
+git rev-parse HEAD        # должен совпадать с последним коммитом master
+docker compose --env-file .env -f infra/production/docker-compose.yml ps
+```
+
 ## Откат
 
 Если деплой сломал прод:
