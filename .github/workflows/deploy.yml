@@ -1,0 +1,69 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Не давать двум деплоям одновременно трогать один и тот же стек на сервере.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  # Повторно прогоняем те же проверки перед деплоем: workflowDepend на push master
+  # срабатывает параллельно, и полагаться на другой workflow в GitHub нельзя.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - run: uv run ruff check .
+        working-directory: apps/api
+      - run: uv run pytest
+        working-directory: apps/api
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.2.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web lint
+      - run: pnpm --filter web typecheck
+      - run: pnpm --filter web build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 193.233.88.115
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /opt/piano-school
+
+            # Подтягиваем именно тот коммит, который прошёл проверки в CI.
+            git fetch origin "${{ github.sha }}"
+            git checkout -f "${{ github.sha }}"
+
+            # .env, самоподписанный сертификат и логи остаются на сервере
+            # (они в .gitignore и не перезаписываются при checkout).
+            mkdir -p infra/production/logs
+            touch infra/production/logs/access.log infra/production/logs/error.log
+
+            DC="docker compose --env-file .env -f infra/production/docker-compose.yml"
+            $DC up -d --build --remove-orphans
+            $DC exec -T api uv run --no-dev alembic upgrade head
+
+            echo "Deployed ${{ github.sha }}"
+            curl -fsS http://127.0.0.1:3000/ -o /dev/null && echo "web OK" || true

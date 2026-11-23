@@ -6,6 +6,7 @@
 - Функциональное ТЗ: [docs/online-piano-school-agent-spec.md](docs/online-piano-school-agent-spec.md)
 - Зафиксированные решения: [docs/project-foundation.md](docs/project-foundation.md)
 - План реализации: [docs/implementation-plan.md](docs/implementation-plan.md)
+- Процесс разработки и деплоя: [docs/development-workflow.md](docs/development-workflow.md)
 
 ## Стек
 
