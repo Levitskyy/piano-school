@@ -40,10 +40,16 @@
 | `EMAIL_PROVIDER` | пока `console`; для сброса пароля в проде нужен Unisender Go |
 | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` | пока пустые — до настройки магазина |
 
+Первый администратор: `orkee23@gmail.com`, пароль сгенерирован при деплое и сохранён в
+`/root/piano-admin-password` на сервере (передайте его владельцу безопасным каналом и удалите файл).
+Старый пользователь `admin@piano-school.local` создан не был: email с доменом `.local`
+отклоняется валидатором `email-validator` как зарезервированный.
+
 ## Команды
 
 ```bash
 cd /opt/piano-school
+# Все команды compose обязательно передают --env-file .env (иначе подстановка станет пустой).
 docker compose --env-file .env -f infra/production/docker-compose.yml ps
 docker compose --env-file .env -f infra/production/docker-compose.yml logs -f web api nginx
 docker compose --env-file .env -f infra/production/docker-compose.yml exec api uv run --no-dev alembic upgrade head
