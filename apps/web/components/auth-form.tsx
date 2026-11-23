@@ -132,6 +132,9 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
           autoCapitalize="none"
           spellCheck={false}
           enterKeyHint="next"
+          // Браузеры и менеджеры паролей добавляют атрибуты автозаполнения в DOM
+          // до гидратации; это не должно вызывать hydration warning.
+          suppressHydrationWarning
           required
         />
       </div>
@@ -148,6 +151,7 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
             maxLength={128}
             enterKeyHint="done"
             aria-describedby={passwordHintId}
+            suppressHydrationWarning
             required
           />
           <button
