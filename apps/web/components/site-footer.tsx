@@ -5,6 +5,7 @@ import { navigation, site } from "@/content/landing";
 const legalLinks = [
   { label: "Публичная оферта", href: "/oferta" },
   { label: "Политика конфиденциальности", href: "/privacy" },
+  { label: "Контакты", href: "/contacts" },
 ];
 
 export function SiteFooter() {

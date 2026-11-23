@@ -23,12 +23,22 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const isLogin = mode === "login";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!isLogin && !consent) {
+      setError(
+        "Чтобы создать аккаунт, нужно принять условия Публичной оферты и Политики конфиденциальности.",
+      );
+      requestAnimationFrame(() => errorRef.current?.focus());
+      return;
+    }
+
     setPending(true);
 
     const form = event.currentTarget;
@@ -154,6 +164,32 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
           {isLogin ? "Пароль от вашего аккаунта." : "Не менее 8 символов."}
         </p>
       </div>
+
+      {!isLogin ? (
+        <div className="field field-consent">
+          <label className="consent-label" htmlFor="consent">
+            <input
+              id="consent"
+              name="consent"
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              required
+            />
+            <span>
+              Я принимаю условия{" "}
+              <Link href="/oferta" target="_blank" rel="noopener noreferrer">
+                Публичной оферты
+              </Link>{" "}
+              и{" "}
+              <Link href="/privacy" target="_blank" rel="noopener noreferrer">
+                Политики конфиденциальности
+              </Link>
+              .
+            </span>
+          </label>
+        </div>
+      ) : null}
 
       <button className="button form-submit" type="submit" disabled={pending}>
         {pending
