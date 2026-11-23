@@ -44,9 +44,9 @@
 
 ```bash
 cd /opt/piano-school
-docker compose -f infra/production/docker-compose.yml ps
-docker compose -f infra/production/docker-compose.yml logs -f web api nginx
-docker compose -f infra/production/docker-compose.yml exec api uv run --no-dev alembic upgrade head
+docker compose --env-file .env -f infra/production/docker-compose.yml ps
+docker compose --env-file .env -f infra/production/docker-compose.yml logs -f web api nginx
+docker compose --env-file .env -f infra/production/docker-compose.yml exec api uv run --no-dev alembic upgrade head
 ```
 
 Обновление кода:
@@ -54,8 +54,8 @@ docker compose -f infra/production/docker-compose.yml exec api uv run --no-dev a
 ```bash
 cd /opt/piano-school
 git pull
-docker compose -f infra/production/docker-compose.yml up -d --build
-docker compose -f infra/production/docker-compose.yml exec api uv run --no-dev alembic upgrade head
+docker compose --env-file .env -f infra/production/docker-compose.yml up -d --build
+docker compose --env-file .env -f infra/production/docker-compose.yml exec api uv run --no-dev alembic upgrade head
 ```
 
 ## Проверки после деплоя

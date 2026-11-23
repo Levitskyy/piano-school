@@ -1,9 +1,5 @@
 name: piano-school
 
-# Compose автоматически подхватывает корневой .env с секретами.
-env_file:
-  - ../../.env
-
 # Прод-стек: только nginx публикует порты 80/443.
 # API, web, PostgreSQL и Redis доступны только внутри сети compose.
 # Secrets читаются из /opt/piano-school/.env (создаётся на сервере, не в git).
