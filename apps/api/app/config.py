@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     email_provider: str = "console"
     email_from: str = ""
-    email_from_name: str = "Piano School"
+    email_from_name: str = "Levickaya Piano"
     unisender_api_key: str = ""
     unisender_api_url: str = "https://goapi.unisender.ru/ru/transactional/api/v1"
 

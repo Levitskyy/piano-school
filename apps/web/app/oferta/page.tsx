@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 export const metadata: Metadata = {
   title: "Публичная оферта",
   description:
-    "Публичная оферта (договор-оферта) на оказание услуг онлайн-обучения игре на фортепиано в Piano School.",
+    "Публичная оферта (договор-оферта) на оказание услуг онлайн-обучения игре на фортепиано в Levickaya Piano.",
 };
 
 export default function OfertaPage() {

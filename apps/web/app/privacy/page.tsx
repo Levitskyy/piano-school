@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 export const metadata: Metadata = {
   title: "Политика конфиденциальности",
   description:
-    "Политика обработки и защиты персональных данных пользователей сайта Piano School (проект).",
+    "Политика обработки и защиты персональных данных пользователей сайта Levickaya Piano (проект).",
 };
 
 export default function PrivacyPage() {

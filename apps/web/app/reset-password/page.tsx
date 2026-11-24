@@ -6,7 +6,7 @@ import { ResetPasswordForm } from "@/components/reset-password-form";
 
 export const metadata: Metadata = {
   title: "Новый пароль",
-  description: "Сброс пароля в аккаунте Piano School.",
+  description: "Сброс пароля в аккаунте Levickaya Piano.",
 };
 
 type ResetPasswordPageProps = {

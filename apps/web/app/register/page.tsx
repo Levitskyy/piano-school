@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Регистрация",
-  description: "Создайте аккаунт ученика Piano School.",
+  description: "Создайте аккаунт ученика Levickaya Piano.",
 };
 
 export default async function RegisterPage() {

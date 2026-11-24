@@ -9,7 +9,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Piano School API",
+        title="Levickaya Piano API",
         version="0.1.0",
         openapi_url="/openapi.json",
     )

@@ -88,7 +88,7 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
     <div className="header-inner" ref={innerRef}>
       <Link className="wordmark" href="/">
         <span className="wordmark-mark" aria-hidden="true">
-          PS
+          LP
         </span>
         <span className="wordmark-text">{site.name}</span>
       </Link>

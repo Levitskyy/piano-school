@@ -51,7 +51,7 @@ export default async function CoursesPage() {
                   <div className="course-card-top">
                     <p className="card-meta">{levelLabel(course.level)}</p>
                     <span className="course-card-mark" aria-hidden="true">
-                      PS
+                      LP
                     </span>
                   </div>
                   <h2>{course.title}</h2>

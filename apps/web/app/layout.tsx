@@ -19,18 +19,18 @@ const sans = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Piano School — фортепиано онлайн",
-    template: "%s — Piano School",
+    default: "Levickaya Piano — фортепиано онлайн",
+    template: "%s — Levickaya Piano",
   },
   description:
-    "Индивидуальные уроки фортепиано онлайн для взрослых и детей. Удобный слот в вашем часовом поясе и внимание к звуку.",
+    "Индивидуальные уроки фортепиано онлайн с Ларисой Валентиновной. Классическая школа, живая музыка, удобный слот в вашем часовом поясе.",
   openGraph: {
     type: "website",
     locale: "ru_RU",
-    siteName: "Piano School",
-    title: "Piano School — фортепиано онлайн",
+    siteName: "Levickaya Piano",
+    title: "Levickaya Piano — фортепиано онлайн",
     description:
-      "Индивидуальные уроки фортепиано онлайн. Выбирайте удобное время и занимайтесь в своём темпе.",
+      "Классическая школа. Живая музыка. Индивидуальные уроки фортепиано онлайн с Ларисой Валентиновной.",
   },
 };
 
