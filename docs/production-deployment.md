@@ -1,6 +1,6 @@
 # Продакшен на VPS (193.233.88.115)
 
-Текущее состояние: домена нет, HTTPS на самоподписанном сертификате (в браузере будет предупреждение). При появлении домена сертификат меняется на Let's Encrypt и `PUBLIC_BASE_URL` обновляется на `https://...`.
+Текущее состояние: домен `levickaya.ru` подключён, HTTPS работает с сертификатом Let's Encrypt для `levickaya.ru` и `www.levickaya.ru`. `PUBLIC_BASE_URL=https://levickaya.ru`. По старому IP браузер по-прежнему покажет предупреждение о сертификате — используйте домен.
 
 ## Что сделано на сервере
 
@@ -20,7 +20,9 @@
     docker-compose.yml
     nginx.conf
     snippets/{proxy.conf,tls-params.conf}
-    selfsigned.{crt,key}
+    selfsigned.{crt,key}      # имя историческое: внутри лежит текущий сертификат Let's Encrypt
+/etc/letsencrypt/              # certbot: live/archive/renewal + renewal-hooks
+/var/www/certbot/              # webroot для HTTP-01 при обновлении
 ```
 
 ## Секреты и переменные
@@ -34,7 +36,7 @@
 | `DATABASE_URL` | переопределяется в compose на контейнер postgres |
 | `REDIS_URL` | переопределяется в compose |
 | `POSTGRES_PASSWORD` | случайный пароль, используется и в .env, и в compose |
-| `PUBLIC_BASE_URL` | `https://193.233.88.115` |
+| `PUBLIC_BASE_URL` | `https://levickaya.ru` |
 | `FRONTEND_URL`, `YOOKASSA_RETURN_URL`, `CORS_ORIGINS` | задаются в compose из `PUBLIC_BASE_URL` |
 | `COURSES_ENABLED` | `false` (первый запуск: только индивидуальные занятия) |
 | `EMAIL_PROVIDER` | пока `console`; для сброса пароля в проде нужен Unisender Go |
@@ -45,6 +47,22 @@
 Старый пользователь `admin@piano-school.local` удалён с прода 24.11.2026: email с доменом
 `.local` отклоняется валидатором `email-validator` как зарезервированный, из-за чего
 `GET /admin/users` отвечал 500. Новые такие аккаунты регистрация не принимает.
+
+## TLS
+
+Сертификат выпущен через `certbot certonly --standalone` (HTTP-01, порт 80 на время выпуска
+был освобождён остановкой nginx-контейнера). Действует до **22.02.2027**, обновляется
+`certbot.timer` (два раза в день, реально — за 30 дней до expires).
+
+Хуки обновления в `/etc/letsencrypt/renewal-hooks/`:
+
+- `pre/10-stop-nginx.sh` — остановить nginx-контейнер (standalone снова займёт :80);
+- `deploy/10-copy-cert.sh` — скопировать `fullchain.pem`/`privkey.pem` в `infra/production/selfsigned.*`
+  (`cp`, а не `install`, чтобы сохранить inode bind-монта);
+- `post/10-start-nginx.sh` — поднять nginx обратно.
+
+Проверить обновление: `certbot renew --dry-run`. Текущий сертификат:
+`certbot certificates`.
 
 ## Команды
 
@@ -68,9 +86,10 @@ docker compose --env-file .env -f infra/production/docker-compose.yml exec api u
 ## Проверки после деплоя
 
 ```bash
-curl -kI https://193.233.88.115/                  # 200 от Next.js
-curl -k  https://193.233.88.115/api/health        # {"status":"ok"}
-curl -kI http://193.233.88.115/                   # 301 на https
+curl -I https://levickaya.ru/                      # 200, сертификат без предупреждений
+curl    https://levickaya.ru/api/health            # {"status":"ok"}
+curl -I http://levickaya.ru/                       # 301 на https
+certbot certificates                               # срок действия сертификата
 ss -tulpn                                          # только 22/80/443 наружу
 ufw status verbose
 fail2ban-client status
@@ -78,8 +97,8 @@ fail2ban-client status
 
 ## Что осталось сделать до приёма реальных платежей
 
-1. Подключить домен, выпустить сертификат Let's Encrypt (certbot), убрать self-signed и `X-Robots-Tag`.
-2. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://<домен>/api/payments/yookassa/webhook`.
+1. ~~Подключить домен и выпустить сертификат Let's Encrypt~~ — готово 24.11.2026. Осталось убрать `X-Robots-Tag: noindex` и увеличить HSTS в `nginx.conf` (отдельным PR).
+2. Заполнить ключи ЮKassa и webhook в кабинете: `https://levickaya.ru/api/payments/yookassa/webhook`.
 3. Настроить Unisender Go (SPF/DKIM) и `EMAIL_PROVIDER=unisender`, `EMAIL_FROM`, `UNISENDER_API_KEY`.
 4. Заполнить юридические страницы и цены (см. чек-лист в `docs/project-foundation.md`, раздел 10).
 5. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
