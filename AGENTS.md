@@ -1,4 +1,4 @@
-# AGENTS.md — Piano School
+# AGENTS.md — Levickaya Piano
 
 ## Что это за проект
 

@@ -1,8 +1,8 @@
 // Контент лендинга для текущего запуска: только индивидуальные занятия.
 
 export const site = {
-  name: "Piano School",
-  tagline: "Индивидуальные уроки фортепиано",
+  name: "Levickaya Piano",
+  tagline: "Классическая школа. Живая музыка.",
 };
 
 type NavItem = { label: string; href: string };
@@ -16,7 +16,7 @@ export const navigation: NavItem[] = [
 ];
 
 export const hero = {
-  eyebrow: "Онлайн-школа фортепиано",
+  eyebrow: "Фортепиано онлайн с Ларисой Валентиновной",
   title: "Фортепиано — спокойно, внятно и в вашем темпе",
   lead: "Живые индивидуальные уроки с преподавателем: разовое занятие или пакет. Удобный слот в вашем часовом поясе и внимание к звуку — без спешки и лишнего шума.",
   primaryCta: { label: "Выбрать занятие", href: "/individual-lessons" },
@@ -81,7 +81,7 @@ export const process = {
 export const manifesto = {
   quote:
     "Хороший звук начинается не с силы, а со внимания. Мы учимся слышать себя — и инструмент.",
-  attribution: "Piano School",
+  attribution: "Лариса Валентиновна, Levickaya Piano",
 };
 
 export const faq = [
@@ -125,7 +125,7 @@ export const faq = [
 export const cta = {
   eyebrow: "Начало",
   title: "Первый шаг — короткое знакомство",
-  text: "Расскажите о целях и опыте, а мы подберём формат и ответим на вопросы.",
+  text: "Расскажите о целях и опыте — я подберу формат и отвечу на вопросы.",
   button: { label: "Выбрать занятие", href: "/individual-lessons" },
   note: "Запись и оплата доступны сейчас — слот подтверждается после поступления платежа.",
 };

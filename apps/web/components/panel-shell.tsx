@@ -23,9 +23,9 @@ export function PanelShell({ user, nav, children }: PanelShellProps) {
         <div className="panel-header-inner">
           <Link className="wordmark" href="/">
             <span className="wordmark-mark" aria-hidden="true">
-              PS
+              LP
             </span>
-            <span className="wordmark-text">Piano School</span>
+            <span className="wordmark-text">Levickaya Piano</span>
           </Link>
 
           <div className="panel-account">

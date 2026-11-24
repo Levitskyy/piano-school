@@ -123,7 +123,7 @@ export default function HomePage() {
         <section className="section split" id="about">
           <figure className="portrait">
             <div className="portrait-frame" aria-hidden="true">
-              <span>PS</span>
+              <span>LP</span>
             </div>
             <figcaption>{about.portraitCaption}</figcaption>
           </figure>

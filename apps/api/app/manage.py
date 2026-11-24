@@ -307,7 +307,7 @@ async def set_offer_price(slug: str, price: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Piano School management commands")
+    parser = argparse.ArgumentParser(description="Levickaya Piano management commands")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     role_parser = subparsers.add_parser("set-role", help="Изменить роль пользователя")

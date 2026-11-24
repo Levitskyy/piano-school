@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Вход",
-  description: "Вход в личный кабинет Piano School.",
+  description: "Вход в личный кабинет Levickaya Piano.",
 };
 
 type LoginPageProps = {

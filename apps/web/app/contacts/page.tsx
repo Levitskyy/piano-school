@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
   title: "Контакты",
-  description: "Контактные данные для связи по вопросам занятий и сайта Piano School.",
+  description: "Контактные данные для связи по вопросам занятий и сайта Levickaya Piano.",
 };
 
 export default function ContactsPage() {

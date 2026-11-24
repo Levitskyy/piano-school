@@ -98,16 +98,16 @@ async def send_password_reset_email(
     await sender.send(
         EmailMessage(
             to=to,
-            subject="Восстановление пароля — Piano School",
+            subject="Восстановление пароля — Levickaya Piano",
             text=(
                 f"Здравствуйте, {name}!\n\n"
-                "Вы запросили восстановление пароля в Piano School.\n"
+                "Вы запросили восстановление пароля в Levickaya Piano.\n"
                 f"Ссылка действует {ttl_minutes} минут:\n{reset_url}\n\n"
                 "Если вы не запрашивали восстановление, просто проигнорируйте письмо."
             ),
             html=(
                 f"<p>Здравствуйте, {safe_name}!</p>"
-                "<p>Вы запросили восстановление пароля в Piano School.</p>"
+                "<p>Вы запросили восстановление пароля в Levickaya Piano.</p>"
                 f"<p><a href=\"{safe_url}\">Задать новый пароль</a></p>"
                 f"<p>Ссылка действует {ttl_minutes} минут. "
                 "Если вы не запрашивали восстановление, просто проигнорируйте письмо.</p>"

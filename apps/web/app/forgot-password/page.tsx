@@ -5,7 +5,7 @@ import { ForgotPasswordForm } from "@/components/forgot-password-form";
 
 export const metadata: Metadata = {
   title: "Восстановление пароля",
-  description: "Восстановление доступа к аккаунту Piano School.",
+  description: "Восстановление доступа к аккаунту Levickaya Piano.",
 };
 
 export default function ForgotPasswordPage() {

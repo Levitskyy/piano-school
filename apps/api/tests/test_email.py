@@ -14,7 +14,7 @@ def test_unisender_payload() -> None:
     settings = Settings(
         email_provider="unisender",
         email_from="no-reply@example.com",
-        email_from_name="Piano School",
+        email_from_name="Levickaya Piano",
         unisender_api_key="test-key",
     )
     sender = UnisenderGoEmailSender(settings)
