@@ -108,7 +108,8 @@ services:
     logging: *logging
 
   nginx:
-    image: nginx:1.27-alpine
+    # 1.31.9+ закрывает nginx2root (CVE-2026-123007); 1.31.10 — последний патч ветки.
+    image: nginx:1.31.10-alpine
     restart: unless-stopped
     cap_drop:
       - ALL
