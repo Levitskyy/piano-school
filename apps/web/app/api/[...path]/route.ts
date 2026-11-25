@@ -76,7 +76,10 @@ async function proxy(request: NextRequest, context: RouteContext) {
       upstream.ok &&
       request.headers.get("accept")?.includes("text/html")
     ) {
-      responseHeaders.set("location", "/account");
+      responseHeaders.set(
+        "location",
+        path[1] === "register" ? "/verify-email?sent=1" : "/account",
+      );
       return new Response(null, { status: 303, headers: responseHeaders });
     }
 

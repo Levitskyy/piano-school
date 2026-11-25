@@ -1480,6 +1480,10 @@ svg {
   color: var(--accent);
 }
 
+.verification-notice {
+  margin-block-end: 1.5rem;
+}
+
 /* Panel */
 
 .panel {

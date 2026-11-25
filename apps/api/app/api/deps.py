@@ -40,6 +40,18 @@ async def get_optional_current_user(
     return await get_user_for_session(session, token)
 
 
+async def require_verified_email(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Мягкий гейт: кабинет доступен, оплата и запись — только после подтверждения."""
+    if user.email_verified_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Подтвердите email, чтобы оплачивать занятия и записываться на урок",
+        )
+    return user
+
+
 def require_roles(*roles: UserRole) -> Callable:
     allowed = {role.value for role in roles}
 

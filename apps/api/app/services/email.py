@@ -153,3 +153,38 @@ async def send_password_reset_email(
             ),
         )
     )
+
+
+async def send_verification_email(
+    sender: EmailSender,
+    *,
+    to: str,
+    name: str,
+    verification_url: str,
+    ttl_minutes: int,
+) -> None:
+    safe_name = html.escape(name)
+    safe_url = html.escape(verification_url, quote=True)
+    hours = ttl_minutes // 60
+    ttl_text = f"{hours} ч." if hours else f"{ttl_minutes} мин."
+    await sender.send(
+        EmailMessage(
+            to=to,
+            subject="Подтвердите email — Levickaya Piano",
+            text=(
+                f"Здравствуйте, {name}!\n\n"
+                "Аккаунт Levickaya Piano создан. Подтвердите email, чтобы оплачивать "
+                "занятия и записываться на уроки.\n"
+                f"Ссылка действует {ttl_text}:\n{verification_url}\n\n"
+                "Если вы не регистрировались, просто проигнорируйте письмо."
+            ),
+            html=(
+                f"<p>Здравствуйте, {safe_name}!</p>"
+                "<p>Аккаунт Levickaya Piano создан. Подтвердите email, чтобы "
+                "оплачивать занятия и записываться на уроки.</p>"
+                f"<p><a href=\"{safe_url}\">Подтвердить email</a></p>"
+                f"<p>Ссылка действует {ttl_text}. "
+                "Если вы не регистрировались, просто проигнорируйте письмо.</p>"
+            ),
+        )
+    )

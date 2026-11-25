@@ -15,7 +15,11 @@ from app.core.security import (
     needs_rehash,
     verify_password,
 )
-from app.models.session import PasswordResetToken, UserSession
+from app.models.session import (
+    EmailVerificationToken,
+    PasswordResetToken,
+    UserSession,
+)
 from app.models.user import StudentProfile, User, UserRole
 
 
@@ -137,6 +141,49 @@ async def create_password_reset(session: AsyncSession, user: User) -> str:
     )
     await session.commit()
     return token
+
+
+async def create_email_verification(session: AsyncSession, user: User) -> str:
+    """Создаёт новую ссылку подтверждения, делая предыдущие недействительными."""
+    settings = get_settings()
+    await session.execute(
+        delete(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+    )
+    token = generate_token()
+    session.add(
+        EmailVerificationToken(
+            user_id=user.id,
+            token_hash=hash_token(token),
+            expires_at=datetime.now(UTC)
+            + timedelta(minutes=settings.email_verification_ttl_minutes),
+        )
+    )
+    await session.commit()
+    return token
+
+
+async def verify_email(session: AsyncSession, *, token: str) -> bool:
+    verification = await session.scalar(
+        select(EmailVerificationToken).where(
+            EmailVerificationToken.token_hash == hash_token(token),
+            EmailVerificationToken.expires_at > datetime.now(UTC),
+        )
+    )
+    if verification is None:
+        return False
+
+    user = await session.get(User, verification.user_id)
+    if user is None:
+        return False
+
+    user.email_verified_at = datetime.now(UTC)
+    await session.execute(
+        delete(EmailVerificationToken).where(
+            EmailVerificationToken.user_id == user.id
+        )
+    )
+    await session.commit()
+    return True
 
 
 async def reset_password(session: AsyncSession, *, token: str, new_password: str) -> bool:

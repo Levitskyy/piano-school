@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
 
@@ -22,6 +23,7 @@ type IndividualLessonBookingProps = {
   slots: LessonSlot[];
   packages: LessonPackage[];
   isAuthenticated: boolean;
+  emailVerificationRequired?: boolean;
   bookingPackage?: LessonPackage | null;
   rescheduleBooking?: Pick<LessonBooking, "id" | "offer_title" | "starts_at"> | null;
   timeZoneOverride?: string | null;
@@ -43,6 +45,7 @@ export function IndividualLessonBooking({
   slots,
   packages,
   isAuthenticated,
+  emailVerificationRequired = false,
   bookingPackage = null,
   rescheduleBooking = null,
   timeZoneOverride = null,
@@ -112,6 +115,10 @@ export function IndividualLessonBooking({
 
   async function send(path: string, body: object) {
     setError(null);
+    if (emailVerificationRequired) {
+      setError("Подтвердите email, чтобы записаться на урок.");
+      return;
+    }
     if (!slotId) {
       setError("Выберите время занятия.");
       return;
@@ -147,6 +154,10 @@ export function IndividualLessonBooking({
 
   async function purchase() {
     setError(null);
+    if (emailVerificationRequired) {
+      setError("Подтвердите email, чтобы оплатить занятие.");
+      return;
+    }
     if (!slotId) {
       setError("Выберите время занятия.");
       return;
@@ -196,6 +207,18 @@ export function IndividualLessonBooking({
 
   return (
     <div className="lesson-booking">
+      {emailVerificationRequired ? (
+        <div className="form-notice verification-notice" role="status">
+          <p>
+            Подтвердите email, чтобы оплатить занятие и записаться на урок. Кабинет и
+            расписание доступны сразу.
+          </p>
+          <p>
+            <Link href="/verify-email">Открыть инструкцию</Link>
+          </p>
+        </div>
+      ) : null}
+
       {isRescheduleMode && rescheduleBooking ? (
         <div className="booking-step">
           <div className="booking-step-head">
@@ -382,7 +405,7 @@ export function IndividualLessonBooking({
           <button
             className="button"
             type="button"
-            disabled={pending || !slotId}
+            disabled={pending || !slotId || emailVerificationRequired}
             onClick={() =>
               send(`bookings/${rescheduleBooking.id}/reschedule`, {
                 slot_id: slotId,
@@ -400,7 +423,9 @@ export function IndividualLessonBooking({
           <button
             className="button"
             type="button"
-            disabled={pending || !slotId || !bookingPackage}
+            disabled={
+              pending || !slotId || !bookingPackage || emailVerificationRequired
+            }
             onClick={() =>
               bookingPackage &&
               send("book", { package_id: bookingPackage.id, slot_id: slotId })
@@ -430,7 +455,11 @@ export function IndividualLessonBooking({
               тариф и только на одну покупку.
             </p>
           </div>
-          <button className="button" type="submit" disabled={pending || !slotId || !offerId}>
+          <button
+            className="button"
+            type="submit"
+            disabled={pending || !slotId || !offerId || emailVerificationRequired}
+          >
             {isAuthenticated ? "Перейти к оплате" : "Войти и оплатить"}
           </button>
           <p className="booking-note">
@@ -461,7 +490,7 @@ export function IndividualLessonBooking({
                 <button
                   className="button button-small"
                   type="button"
-                  disabled={pending || !slotId}
+                  disabled={pending || !slotId || emailVerificationRequired}
                   onClick={() =>
                     send("book", {
                       package_id: item.id,

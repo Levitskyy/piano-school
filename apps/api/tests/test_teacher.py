@@ -10,6 +10,7 @@ from app.models.individual_lessons import (
     LessonSlotStatus,
 )
 from app.models.user import User, UserRole
+from conftest import register_and_verify
 
 
 class FakeYooKassa:
@@ -69,8 +70,7 @@ async def test_teacher_views_bookings_and_sets_meeting_url(
     fake = FakeYooKassa()
     monkeypatch.setattr("app.services.payments._yookassa", fake)
 
-    registered = await client.post("/auth/register", json=register_payload)
-    assert registered.status_code == 201
+    await register_and_verify(client, session_factory, register_payload)
     student_cookies = dict(client.cookies)
 
     purchased = await client.post(

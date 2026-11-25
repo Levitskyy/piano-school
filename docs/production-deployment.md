@@ -1,6 +1,6 @@
 # Продакшен на VPS (193.233.88.115)
 
-Текущее состояние: домена нет, HTTPS на самоподписанном сертификате (в браузере будет предупреждение). При появлении домена сертификат меняется на Let's Encrypt и `PUBLIC_BASE_URL` обновляется на `https://...`.
+Текущее состояние: домен `levickaya.ru` подключён, HTTPS работает (`curl -I https://levickaya.ru/` → 200, цепочка сертификата проверяется). `PUBLIC_BASE_URL=https://levickaya.ru`, письма отправляются через Resend.
 
 ## Что сделано на сервере
 
@@ -34,10 +34,10 @@
 | `DATABASE_URL` | переопределяется в compose на контейнер postgres |
 | `REDIS_URL` | переопределяется в compose |
 | `POSTGRES_PASSWORD` | случайный пароль, используется и в .env, и в compose |
-| `PUBLIC_BASE_URL` | `https://193.233.88.115` |
+| `PUBLIC_BASE_URL` | `https://levickaya.ru` |
 | `FRONTEND_URL`, `YOOKASSA_RETURN_URL`, `CORS_ORIGINS` | задаются в compose из `PUBLIC_BASE_URL` |
 | `COURSES_ENABLED` | `false` (первый запуск: только индивидуальные занятия) |
-| `EMAIL_PROVIDER` | пока `console`; для сброса пароля в проде нужен Unisender Go |
+| `EMAIL_PROVIDER` | `resend`; `RESEND_API_KEY` и `EMAIL_FROM` заданы (значения — только в `.env` на сервере) |
 | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` | пока пустые — до настройки магазина |
 
 Первый администратор: `orkee23@gmail.com`, пароль сгенерирован при деплое и сохранён в
@@ -67,9 +67,9 @@ docker compose --env-file .env -f infra/production/docker-compose.yml exec api u
 ## Проверки после деплоя
 
 ```bash
-curl -kI https://193.233.88.115/                  # 200 от Next.js
-curl -k  https://193.233.88.115/api/health        # {"status":"ok"}
-curl -kI http://193.233.88.115/                   # 301 на https
+curl -I https://levickaya.ru/                     # 200 от Next.js
+curl   https://levickaya.ru/api/health            # {"status":"ok"}
+curl -I http://levickaya.ru/                      # 301 на https
 ss -tulpn                                          # только 22/80/443 наружу
 ufw status verbose
 fail2ban-client status
@@ -77,11 +77,10 @@ fail2ban-client status
 
 ## Что осталось сделать до приёма реальных платежей
 
-1. Подключить домен, выпустить сертификат Let's Encrypt (certbot), убрать self-signed и `X-Robots-Tag`.
-2. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://<домен>/api/payments/yookassa/webhook`.
-3. Подтвердить домен в Resend (SPF/DKIM), задать `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`.
-4. Заполнить юридические страницы и цены (см. чек-лист в `docs/project-foundation.md`, раздел 10).
-5. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
+1. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://levickaya.ru/api/payments/yookassa/webhook`.
+2. Проверить, что домен подтверждён в Resend (SPF/DKIM): переменные уже заданы, но без записей DNS письма могут попадать в спам.
+3. Заполнить юридические страницы и цены (см. чек-лист в `docs/project-foundation.md`, раздел 10).
+4. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
 
 ## Откат при потере SSH
 
