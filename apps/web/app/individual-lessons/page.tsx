@@ -51,6 +51,7 @@ export default async function IndividualLessonsPage() {
             slots={slots}
             packages={account.packages}
             isAuthenticated={Boolean(user)}
+            emailVerificationRequired={Boolean(user && !user.email_verified_at)}
             timeZoneOverride={user?.timezone ?? null}
           />
         </section>

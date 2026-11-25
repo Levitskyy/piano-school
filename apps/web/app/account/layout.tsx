@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ClientRedirect } from "@/components/client-redirect";
 import { PanelShell } from "@/components/panel-shell";
 import { getCurrentUser } from "@/lib/auth";
@@ -14,5 +16,19 @@ export default async function AccountLayout({
   const user = await getCurrentUser();
   if (!user) return <ClientRedirect to="/login?next=/account" />;
 
-  return <PanelShell user={user} nav={accountNav}>{children}</PanelShell>;
+  return (
+    <PanelShell user={user} nav={accountNav}>
+      {user.email_verified_at ? null : (
+        <div className="form-notice verification-notice" role="status">
+          <p>
+            Подтвердите email, чтобы оплачивать занятия и записываться на уроки.
+          </p>
+          <p>
+            <Link href="/verify-email">Открыть инструкцию</Link>
+          </p>
+        </div>
+      )}
+      {children}
+    </PanelShell>
+  );
 }

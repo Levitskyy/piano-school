@@ -75,6 +75,7 @@ export default async function BookLessonPage({ searchParams }: BookLessonPagePro
           slots={slots}
           packages={[]}
           isAuthenticated
+          emailVerificationRequired={!user.email_verified_at}
           bookingPackage={bookingPackage}
           timeZoneOverride={user.timezone}
         />

@@ -26,7 +26,11 @@ from app.models.individual_lessons import (
     LessonSlotStatus,
 )
 from app.models.payments import PromoCode, PurchaseOrder, PurchaseOrderStatus
-from app.models.session import PasswordResetToken, UserSession
+from app.models.session import (
+    EmailVerificationToken,
+    PasswordResetToken,
+    UserSession,
+)
 from app.models.user import StudentProfile, User, UserRole
 
 __all__ = [
@@ -37,6 +41,7 @@ __all__ = [
     "CourseModule",
     "CourseOffer",
     "CourseStatus",
+    "EmailVerificationToken",
     "IndividualLessonOffer",
     "IndividualLessonOfferKind",
     "Lesson",

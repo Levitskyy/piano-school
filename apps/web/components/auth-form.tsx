@@ -69,8 +69,15 @@ export function AuthForm({ mode, headingId, next }: AuthFormProps) {
         return;
       }
 
-      const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : "/account";
-      router.push(safeNext);
+      if (isLogin) {
+        const safeNext =
+          next?.startsWith("/") && !next.startsWith("//") ? next : "/account";
+        router.push(safeNext);
+      } else {
+        // Сессия уже создана, но до подтверждения email недоступны оплата и запись.
+        const emailSent = body?.verification_email_sent !== false;
+        router.push(emailSent ? "/verify-email?sent=1" : "/verify-email?failed=1");
+      }
       router.refresh();
     } catch {
       setError("Сервис временно недоступен. Попробуйте ещё раз.");

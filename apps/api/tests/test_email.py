@@ -8,6 +8,7 @@ from app.services.email import (
     ResendEmailSender,
     UnisenderGoEmailSender,
     get_email_sender,
+    send_verification_email,
 )
 
 
@@ -76,3 +77,27 @@ def test_local_uses_console_sender() -> None:
 def test_production_requires_provider() -> None:
     with pytest.raises(EmailNotConfiguredError):
         get_email_sender(Settings(environment="production", email_provider="console"))
+
+
+async def test_verification_email_contains_link() -> None:
+    class RecordingSender:
+        def __init__(self) -> None:
+            self.message: EmailMessage | None = None
+
+        async def send(self, message: EmailMessage) -> None:
+            self.message = message
+
+    sender = RecordingSender()
+    await send_verification_email(
+        sender,
+        to="student@example.com",
+        name="Анна",
+        verification_url="https://levickaya.ru/verify-email?token=secret",
+        ttl_minutes=1440,
+    )
+
+    assert sender.message is not None
+    assert sender.message.to == "student@example.com"
+    assert "https://levickaya.ru/verify-email?token=secret" in sender.message.text
+    assert sender.message.html is not None
+    assert "Подтвердить email" in sender.message.html

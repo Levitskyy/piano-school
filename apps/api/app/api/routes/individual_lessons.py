@@ -3,7 +3,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_optional_current_user
+from app.api.deps import (
+    get_current_user,
+    get_optional_current_user,
+    require_verified_email,
+)
 from app.db import get_session
 from app.models.user import User
 from app.schemas.individual_lessons import (
@@ -53,7 +57,7 @@ async def get_account_lessons(
 @router.post("/purchase", response_model=PurchasePaymentOut)
 async def purchase_lesson(
     payload: PurchasePaymentIn,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_email),
     session: AsyncSession = Depends(get_session),
 ) -> PurchasePaymentOut:
     await payments_service.release_expired_orders(session)
@@ -85,7 +89,7 @@ async def purchase_lesson(
 @router.post("/book", response_model=LessonBookingOut)
 async def book_from_package(
     payload: BookFromPackageIn,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_verified_email),
     session: AsyncSession = Depends(get_session),
 ) -> LessonBookingOut:
     try:
