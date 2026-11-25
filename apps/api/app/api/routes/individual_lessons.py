@@ -9,6 +9,7 @@ from app.api.deps import (
     require_verified_email,
 )
 from app.db import get_session
+from app.models.payments import PaymentProvider
 from app.models.user import User
 from app.schemas.individual_lessons import (
     AccountIndividualLessonsOut,
@@ -63,7 +64,12 @@ async def purchase_lesson(
     await payments_service.release_expired_orders(session)
     try:
         order, confirmation_url = await payments_service.create_purchase_payment(
-            session, user, payload.offer_id, payload.slot_id, payload.promo_code
+            session,
+            user,
+            payload.offer_id,
+            payload.slot_id,
+            payload.promo_code,
+            PaymentProvider(payload.payment_provider),
         )
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

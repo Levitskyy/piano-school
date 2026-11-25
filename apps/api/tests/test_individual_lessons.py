@@ -19,6 +19,8 @@ from app.models.payments import PromoCode, PurchaseOrder, PurchaseOrderStatus
 from app.models.user import User, UserRole
 from conftest import register_and_verify
 
+YOOKASSA_WEBHOOK_HEADERS = {"x-forwarded-for": "185.71.76.1"}
+
 
 async def seed_offers_and_slots(
     session_factory: async_sessionmaker[AsyncSession],
@@ -137,6 +139,7 @@ async def send_webhook(client: AsyncClient, payment_id: str, event: str) -> None
     response = await client.post(
         "/payments/yookassa/webhook",
         json={"type": "notification", "event": event, "object": {"id": payment_id}},
+        headers=YOOKASSA_WEBHOOK_HEADERS,
     )
     assert response.status_code == 204, response.text
 
@@ -773,4 +776,83 @@ async def test_student_cannot_cancel_another_students_booking(
 
     forbidden = await client.post(f"/individual-lessons/bookings/{booking_id}/cancel")
     assert forbidden.status_code == 404
+
+
+async def test_yookassa_webhook_from_untrusted_ip_is_rejected(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    register_payload: dict[str, str],
+    monkeypatch,
+) -> None:
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+    single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
+    await register_and_verify(client, session_factory, register_payload)
+    order = await purchase(client, single_id, slot_one_id)
+    payment_id = payment_id_for(order, fake)
+    fake.set_status(payment_id, "succeeded")
+
+    rejected = await client.post(
+        "/payments/yookassa/webhook",
+        json={"type": "notification", "event": "payment.succeeded", "object": {"id": payment_id}},
+    )
+    assert rejected.status_code == 403
+
+    spoofed = await client.post(
+        "/payments/yookassa/webhook",
+        headers={"x-forwarded-for": "185.71.76.1, 203.0.113.5"},
+        json={"type": "notification", "event": "payment.succeeded", "object": {"id": payment_id}},
+    )
+    assert spoofed.status_code == 403
+
+    account = await client.get("/individual-lessons/account")
+    assert account.json()["packages"] == []
+    async with session_factory() as session:
+        db_order = await session.get(PurchaseOrder, UUID(order["order_id"]))
+        assert db_order is not None
+        assert db_order.status == PurchaseOrderStatus.PENDING.value
+
+
+async def test_yookassa_webhook_ignores_forged_payload(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    register_payload: dict[str, str],
+    monkeypatch,
+) -> None:
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+    single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
+    await register_and_verify(client, session_factory, register_payload)
+    order = await purchase(client, single_id, slot_one_id)
+    payment_id = payment_id_for(order, fake)
+    fake.set_status(payment_id, "pending")
+
+    forged = await client.post(
+        "/payments/yookassa/webhook",
+        headers=YOOKASSA_WEBHOOK_HEADERS,
+        json={
+            "type": "notification",
+            "event": "payment.succeeded",
+            "object": {
+                "id": payment_id,
+                "status": "succeeded",
+                "amount": {"value": "1500.00", "currency": "RUB"},
+                "metadata": {"order_id": order["order_id"]},
+            },
+        },
+    )
+    assert forged.status_code == 204
+
+    account = await client.get("/individual-lessons/account")
+    assert account.json()["packages"] == []
+    status = await client.get(f"/payments/{order['order_id']}")
+    assert status.json()["status"] == "pending"
+
+    forged_cancel = await client.post(
+        "/payments/yookassa/webhook",
+        headers=YOOKASSA_WEBHOOK_HEADERS,
+        json={"type": "notification", "event": "payment.canceled", "object": {"id": payment_id}},
+    )
+    assert forged_cancel.status_code == 204
+    assert (await client.get(f"/payments/{order['order_id']}")).json()["status"] == "pending"
 

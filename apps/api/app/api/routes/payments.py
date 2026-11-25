@@ -1,7 +1,8 @@
+import json
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -15,9 +16,18 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 @router.post("/yookassa/webhook", status_code=status.HTTP_204_NO_CONTENT)
 async def yookassa_webhook(
+    request: Request,
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ) -> Response:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    client_ip = forwarded_for or (request.client.host if request.client else None)
+    if not payments_service.is_yookassa_webhook_ip(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Уведомление пришло не с IP ЮKassa",
+        )
+
     payment = payload.get("object")
     payment_id = payment.get("id") if isinstance(payment, dict) else None
     if not isinstance(payment_id, str) or not payment_id:
@@ -37,6 +47,42 @@ async def yookassa_webhook(
     except payments_service.PaymentError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/prodamus/webhook")
+async def prodamus_webhook(
+    request: Request,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+) -> PlainTextResponse:
+    """Prodamus шлёт JSON с полем submit; подпись лежит в заголовке Sign."""
+    submitted = payload.get("submit")
+    if isinstance(submitted, str):
+        try:
+            values = json.loads(submitted)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Некорректное уведомление Prodamus",
+            ) from exc
+    elif isinstance(submitted, dict):
+        values = submitted
+    else:
+        values = payload
+
+    if not isinstance(values, dict):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректное уведомление Prodamus",
+        )
+
+    try:
+        await payments_service.confirm_prodamus_payment(
+            session, values, request.headers.get("sign")
+        )
+    except payments_service.PaymentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return PlainTextResponse("OK")
 
 
 @router.get("/{order_id}", response_model=PaymentStatusOut)

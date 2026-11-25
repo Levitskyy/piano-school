@@ -17,6 +17,7 @@ async function proxy(request: NextRequest, context: RouteContext) {
     "accept-language",
     "content-type",
     "cookie",
+    "sign",
     "user-agent",
     "x-forwarded-for",
   ]) {

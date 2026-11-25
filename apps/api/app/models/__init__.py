@@ -25,7 +25,12 @@ from app.models.individual_lessons import (
     LessonSlot,
     LessonSlotStatus,
 )
-from app.models.payments import PromoCode, PurchaseOrder, PurchaseOrderStatus
+from app.models.payments import (
+    PaymentProvider,
+    PromoCode,
+    PurchaseOrder,
+    PurchaseOrderStatus,
+)
 from app.models.session import (
     EmailVerificationToken,
     PasswordResetToken,
@@ -57,6 +62,7 @@ __all__ = [
     "MaterialKind",
     "OfferKind",
     "PasswordResetToken",
+    "PaymentProvider",
     "PromoCode",
     "PurchaseOrder",
     "PurchaseOrderStatus",

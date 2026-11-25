@@ -62,14 +62,15 @@ make dev-stack      # БД + API + web в фоне
 - `/account` и `/account/courses` — кабинет ученика;
 - `/teacher-panel` — панель преподавателя;
 - `/admin` — панель администратора;
-- `/payment/success?order_id=...` — результат оплаты (статус берётся из API, а не из адреса страницы).
+- `/payment/success?order_id=...` (или `?order_num=...` после Prodamus) — результат оплаты: статус берётся из API, а не из адреса страницы.
 
 Запуск только с индивидуальными занятиями: `COURSES_ENABLED=false` в `.env` убирает
 каталог, страницы и API курсов (404), а также ссылки на них из меню. Отдельная ветка
 для этого не нужна.
 
-Оплата уроков идёт через ЮKassa (RUB). Перед приёмом платежей задайте цены и заполните
-ключи тестового магазина:
+Оплата уроков идёт через ЮKassa или Prodamus (RUB). Prodamus используется для иностранных
+карт, включая карты из США; конвертацию делает банк покупателя. Перед приёмом платежей
+задайте цены и заполните ключи обоих сервисов в `.env`:
 
 ```bash
 make set-price slug=single price=1500
@@ -78,7 +79,15 @@ make promo-code percent=33.33 offer=single   # 1500 ₽ → 1000 ₽, тольк
 
 Промокод вводится на странице `/individual-lessons` перед переходом к оплате и действует
 только на тариф, выбранный при создании (`single`, `package-4`, `package-8`).
-ЮKassa получает уже итоговую сумму; чеки для самозанятого настраиваются в кабинете ЮKassa.
+Оба сервиса получают уже итоговую сумму; чеки для самозанятого настраиваются в кабинете
+выбранного сервиса.
+
+- ЮKassa: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`; webhook
+  `https://levickaya.ru/api/payments/yookassa/webhook`. HTTP-уведомления не подписаны —
+  сервер проверяет IP и уточняет статус платежа через API.
+- Prodamus: `PRODAMUS_FORM_URL`, `PRODAMUS_SECRET_KEY`, `PRODAMUS_PAYMENT_METHOD=monetaworld`,
+  `PRODAMUS_CURRENCY=rub`; webhook `https://levickaya.ru/api/payments/prodamus/webhook`.
+  Подпись в заголовке `Sign` обязательна; страница результата доступ не выдаёт.
 
 Цены и промокоды можно менять и в админке: `/admin/products` и `/admin/promo-codes`
 (нужна роль `admin`). CLI из таблицы ниже остаётся для автоматизации.
