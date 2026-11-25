@@ -11,18 +11,19 @@ export const metadata: Metadata = {
 };
 
 type PaymentSuccessPageProps = {
-  searchParams: Promise<{ order_id?: string }>;
+  searchParams: Promise<{ order_id?: string; order_num?: string }>;
 };
 
 export default async function PaymentSuccessPage({ searchParams }: PaymentSuccessPageProps) {
-  const { order_id: orderId } = await searchParams;
+  const { order_id: orderId, order_num: orderNum } = await searchParams;
   const user = await getCurrentUser();
   if (!user) return <ClientRedirect to="/login?next=/individual-lessons" />;
 
   let status: string | null = null;
-  if (orderId) {
+  const orderRef = orderId ?? orderNum;
+  if (orderRef) {
     try {
-      const response = await fetchWithSession(`/payments/${encodeURIComponent(orderId)}`);
+      const response = await fetchWithSession(`/payments/${encodeURIComponent(orderRef)}`);
       if (response.ok) {
         status = ((await response.json()) as { status: string }).status;
       }

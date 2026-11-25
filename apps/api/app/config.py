@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     yookassa_secret_key: str = ""
     yookassa_api_url: str = "https://api.yookassa.ru/v3"
     yookassa_return_url: str = "http://localhost:3000"
+    prodamus_form_url: str = "https://payform.ru/"
+    prodamus_secret_key: str = ""
+    prodamus_payment_method: str = "monetaworld"
+    prodamus_currency: str = "rub"
     payment_reservation_minutes: int = 15
 
     @property

@@ -36,6 +36,8 @@ type SlotGroup = {
 
 const DAYS_PER_PAGE = 7;
 
+type PaymentProvider = "yookassa" | "prodamus";
+
 function capitalizeFirst(value: string): string {
   return value.charAt(0).toLocaleUpperCase("ru-RU") + value.slice(1);
 }
@@ -63,6 +65,7 @@ export function IndividualLessonBooking({
   const [selectedDayLabel, setSelectedDayLabel] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [promoCode, setPromoCode] = useState("");
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>("yookassa");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -185,6 +188,7 @@ export function IndividualLessonBooking({
           offer_id: offerId,
           slot_id: slotId,
           promo_code: promoCode.trim() || null,
+          payment_provider: paymentProvider,
         }),
       });
       if (!response.ok) {
@@ -460,6 +464,25 @@ export function IndividualLessonBooking({
               тариф и только на одну покупку.
             </p>
           </div>
+          <div className="field field-payment">
+            <label htmlFor="payment-provider">Способ оплаты</label>
+            <select
+              id="payment-provider"
+              name="payment_provider"
+              value={paymentProvider}
+              onChange={(event) =>
+                setPaymentProvider(event.target.value as PaymentProvider)
+              }
+              aria-describedby="payment-provider-hint"
+            >
+              <option value="yookassa">ЮKassa — карты российских банков</option>
+              <option value="prodamus">Prodamus — иностранные карты</option>
+            </select>
+            <p className="field-hint" id="payment-provider-hint">
+              Цены указаны в рублях. При оплате иностранной картой банк спишет сумму в валюте
+              карты по своему курсу.
+            </p>
+          </div>
           <div className="field field-consent">
             <label className="consent-label" htmlFor="purchase-consent">
               <input
@@ -491,8 +514,8 @@ export function IndividualLessonBooking({
             {isAuthenticated ? "Перейти к оплате" : "Войти и оплатить"}
           </button>
           <p className="booking-note">
-            Оплата через ЮKassa. Выбранный слот закрепляется за вами на время оплаты;
-            занятие подтвердится после поступления платежа.
+            Выбранный слот закрепляется за вами на время оплаты; занятие подтвердится после
+            поступления платежа.
           </p>
         </form>
       )}

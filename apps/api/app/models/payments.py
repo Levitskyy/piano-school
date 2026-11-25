@@ -33,6 +33,11 @@ class PurchaseOrderStatus(StrEnum):
     EXPIRED = "expired"
 
 
+class PaymentProvider(StrEnum):
+    YOOKASSA = "yookassa"
+    PRODAMUS = "prodamus"
+
+
 class PromoCode(Base):
     __tablename__ = "promo_codes"
 
@@ -77,7 +82,12 @@ class PurchaseOrder(Base):
     status: Mapped[str] = mapped_column(
         String(20), default=PurchaseOrderStatus.PENDING.value, index=True
     )
-    yookassa_payment_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    provider: Mapped[str] = mapped_column(
+        String(16), default=PaymentProvider.YOOKASSA.value, index=True
+    )
+    provider_payment_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, server_default=func.now()

@@ -41,6 +41,7 @@
 | `COURSES_ENABLED` | `false` (первый запуск: только индивидуальные занятия) |
 | `EMAIL_PROVIDER` | `resend`; `RESEND_API_KEY` и `EMAIL_FROM` заданы (значения — только в `.env` на сервере) |
 | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` | пока пустые — до настройки магазина |
+| `PRODAMUS_FORM_URL`, `PRODAMUS_SECRET_KEY`, `PRODAMUS_PAYMENT_METHOD`, `PRODAMUS_CURRENCY` | пока пустые — до настройки платёжной формы; значения передаются в api/worker через env_file |
 
 Первый администратор: `orkee23@gmail.com`, пароль сгенерирован при деплое и сохранён в
 `/root/piano-admin-password` на сервере (передайте его владельцу безопасным каналом и удалите файл).
@@ -97,12 +98,13 @@ fail2ban-client status
 
 ## Что осталось сделать до приёма реальных платежей
 
-1. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://levickaya.ru/api/payments/yookassa/webhook`.
-2. Проверить, что домен подтверждён в Resend (SPF/DKIM): переменные уже заданы, но без записей DNS письма могут попадать в спам.
-3. Задать финальные цены тарифов 1/4/8 уроков. Юридические страницы и тексты согласий уже
+1. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://levickaya.ru/api/payments/yookassa/webhook`. Уведомления не подписаны: API проверяет IP из официального списка и статус платежа GET-запросом.
+2. Заполнить `PRODAMUS_*` из кабинета платёжной формы. В настройках указать URL уведомлений `https://levickaya.ru/api/payments/prodamus/webhook`, SuccessURL `https://levickaya.ru/payment/success`, тот же секретный ключ и схему чеков для самозанятого. Ссылка оплаты отправляется с `callbackType=json`, `payment_method=monetaworld` и `currency=rub`; подпись `Sign` проверяется до выдачи доступа. Перед реальными платежами получить в поддержке письменное подтверждение приёма карт США для плательщика НПД по этому сценарию.
+3. Проверить, что домен подтверждён в Resend (SPF/DKIM): переменные уже заданы, но без записей DNS письма могут попадать в спам.
+4. Задать финальные цены тарифов 1/4/8 уроков. Юридические страницы и тексты согласий уже
    заполнены (см. `docs/project-foundation.md`, разделы 10–11).
-4. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
-5. Убрать `X-Robots-Tag: noindex` и увеличить HSTS в `nginx.conf` (отдельным PR).
+5. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
+6. Убрать `X-Robots-Tag: noindex` и увеличить HSTS в `nginx.conf` (отдельным PR).
 
 ## Откат при потере SSH
 

@@ -86,6 +86,7 @@ async def test_teacher_views_bookings_and_sets_meeting_url(
     webhook = await client.post(
         "/payments/yookassa/webhook",
         json={"type": "notification", "object": {"id": payment_id}},
+        headers={"x-forwarded-for": "185.71.76.1"},
     )
     assert webhook.status_code == 204, webhook.text
 
