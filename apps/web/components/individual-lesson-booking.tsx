@@ -63,6 +63,7 @@ export function IndividualLessonBooking({
   const [selectedDayLabel, setSelectedDayLabel] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [promoCode, setPromoCode] = useState("");
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isPackageMode = Boolean(bookingPackage);
@@ -164,6 +165,10 @@ export function IndividualLessonBooking({
     }
     if (!offerId) {
       setError("Выберите формат занятия.");
+      return;
+    }
+    if (!consent) {
+      setError("Примите условия оферты и политики конфиденциальности.");
       return;
     }
     if (!isAuthenticated) {
@@ -455,10 +460,33 @@ export function IndividualLessonBooking({
               тариф и только на одну покупку.
             </p>
           </div>
+          <div className="field field-consent">
+            <label className="consent-label" htmlFor="purchase-consent">
+              <input
+                id="purchase-consent"
+                name="consent"
+                type="checkbox"
+                checked={consent}
+                onChange={(event) => setConsent(event.target.checked)}
+                required
+              />
+              <span>
+                Я принимаю условия{" "}
+                <Link href="/oferta" target="_blank" rel="noopener noreferrer">
+                  Публичной оферты
+                </Link>{" "}
+                и{" "}
+                <Link href="/privacy" target="_blank" rel="noopener noreferrer">
+                  Политики конфиденциальности
+                </Link>
+                , в том числе правила отмены, переноса и возврата.
+              </span>
+            </label>
+          </div>
           <button
             className="button"
             type="submit"
-            disabled={pending || !slotId || !offerId || emailVerificationRequired}
+            disabled={pending || !slotId || !offerId || !consent || emailVerificationRequired}
           >
             {isAuthenticated ? "Перейти к оплате" : "Войти и оплатить"}
           </button>
