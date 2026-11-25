@@ -95,6 +95,54 @@ async def test_password_reset_flow(
     assert new_login.status_code == 200
 
 
+async def test_register_requires_email_verification_for_paid_actions(
+    client: AsyncClient, register_payload: dict[str, str]
+) -> None:
+    registered = await client.post("/auth/register", json=register_payload)
+    assert registered.status_code == 201
+    body = registered.json()
+    assert body["email_verified_at"] is None
+    assert body["verification_email_sent"] is True
+    assert body["dev_verification_url"]
+
+    before = await client.get("/auth/me")
+    assert before.json()["email_verified_at"] is None
+
+    token = parse_qs(urlparse(body["dev_verification_url"]).query)["token"][0]
+    verified = await client.post("/auth/verify-email", json={"token": token})
+    assert verified.status_code == 200
+
+    after = await client.get("/auth/me")
+    assert after.json()["email_verified_at"] is not None
+
+    reused = await client.post("/auth/verify-email", json={"token": token})
+    assert reused.status_code == 400
+
+
+async def test_resend_verification_replaces_previous_link(
+    client: AsyncClient, register_payload: dict[str, str]
+) -> None:
+    registered = await client.post("/auth/register", json=register_payload)
+    assert registered.status_code == 201
+    old_token = parse_qs(urlparse(registered.json()["dev_verification_url"]).query)[
+        "token"
+    ][0]
+
+    resent = await client.post("/auth/resend-verification")
+    assert resent.status_code == 200
+    assert resent.json()["verification_email_sent"] is True
+    new_token = parse_qs(urlparse(resent.json()["dev_verification_url"]).query)[
+        "token"
+    ][0]
+    assert new_token != old_token
+
+    old_link = await client.post("/auth/verify-email", json={"token": old_token})
+    assert old_link.status_code == 400
+
+    new_link = await client.post("/auth/verify-email", json={"token": new_token})
+    assert new_link.status_code == 200
+
+
 async def test_profile_update(
     client: AsyncClient, register_payload: dict[str, str]
 ) -> None:

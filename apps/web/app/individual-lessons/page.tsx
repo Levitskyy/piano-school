@@ -40,7 +40,10 @@ export default async function IndividualLessonsPage() {
           </p>
         </section>
 
-        <section className="section" aria-labelledby="booking-title">
+        <section
+          className="section lesson-booking-section"
+          aria-labelledby="booking-title"
+        >
           <div className="section-head">
             <h2 id="booking-title" className="visually-hidden">
               Выбор занятия
@@ -51,6 +54,7 @@ export default async function IndividualLessonsPage() {
             slots={slots}
             packages={account.packages}
             isAuthenticated={Boolean(user)}
+            emailVerificationRequired={Boolean(user && !user.email_verified_at)}
             timeZoneOverride={user?.timezone ?? null}
           />
         </section>

@@ -1,6 +1,6 @@
 # Продакшен на VPS (193.233.88.115)
 
-Текущее состояние: домен `levickaya.ru` подключён, HTTPS работает с сертификатом Let's Encrypt для `levickaya.ru` и `www.levickaya.ru`. `PUBLIC_BASE_URL=https://levickaya.ru`. По старому IP браузер по-прежнему покажет предупреждение о сертификате — используйте домен.
+Текущее состояние: домен `levickaya.ru` подключён, HTTPS работает с сертификатом Let's Encrypt для `levickaya.ru` и `www.levickaya.ru` (`curl -I https://levickaya.ru/` → 200). `PUBLIC_BASE_URL=https://levickaya.ru`, письма отправляются через Resend. По старому IP браузер по-прежнему покажет предупреждение о сертификате — используйте домен.
 
 ## Что сделано на сервере
 
@@ -39,7 +39,7 @@
 | `PUBLIC_BASE_URL` | `https://levickaya.ru` |
 | `FRONTEND_URL`, `YOOKASSA_RETURN_URL`, `CORS_ORIGINS` | задаются в compose из `PUBLIC_BASE_URL` |
 | `COURSES_ENABLED` | `false` (первый запуск: только индивидуальные занятия) |
-| `EMAIL_PROVIDER` | пока `console`; для сброса пароля в проде нужен Unisender Go |
+| `EMAIL_PROVIDER` | `resend`; `RESEND_API_KEY` и `EMAIL_FROM` заданы (значения — только в `.env` на сервере) |
 | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` | пока пустые — до настройки магазина |
 
 Первый администратор: `orkee23@gmail.com`, пароль сгенерирован при деплое и сохранён в
@@ -86,7 +86,7 @@ docker compose --env-file .env -f infra/production/docker-compose.yml exec api u
 ## Проверки после деплоя
 
 ```bash
-curl -I https://levickaya.ru/                      # 200, сертификат без предупреждений
+curl -I https://levickaya.ru/                      # 200 от Next.js, сертификат без предупреждений
 curl    https://levickaya.ru/api/health            # {"status":"ok"}
 curl -I http://levickaya.ru/                       # 301 на https
 certbot certificates                               # срок действия сертификата
@@ -97,11 +97,11 @@ fail2ban-client status
 
 ## Что осталось сделать до приёма реальных платежей
 
-1. ~~Подключить домен и выпустить сертификат Let's Encrypt~~ — готово 24.11.2026. Осталось убрать `X-Robots-Tag: noindex` и увеличить HSTS в `nginx.conf` (отдельным PR).
-2. Заполнить ключи ЮKassa и webhook в кабинете: `https://levickaya.ru/api/payments/yookassa/webhook`.
-3. Настроить Unisender Go (SPF/DKIM) и `EMAIL_PROVIDER=unisender`, `EMAIL_FROM`, `UNISENDER_API_KEY`.
-4. Заполнить юридические страницы и цены (см. чек-лист в `docs/project-foundation.md`, раздел 10).
-5. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
+1. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://levickaya.ru/api/payments/yookassa/webhook`.
+2. Проверить, что домен подтверждён в Resend (SPF/DKIM): переменные уже заданы, но без записей DNS письма могут попадать в спам.
+3. Заполнить юридические страницы и цены (см. чек-лист в `docs/project-foundation.md`, раздел 10).
+4. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
+5. Убрать `X-Robots-Tag: noindex` и увеличить HSTS в `nginx.conf` (отдельным PR).
 
 ## Откат при потере SSH
 

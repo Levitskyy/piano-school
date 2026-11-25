@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 from httpx import AsyncClient
@@ -10,11 +11,13 @@ from app.models.individual_lessons import (
     IndividualLessonOfferKind,
     LessonBooking,
     LessonPackage,
+    LessonPackageStatus,
     LessonSlot,
     LessonSlotStatus,
 )
 from app.models.payments import PromoCode, PurchaseOrder, PurchaseOrderStatus
 from app.models.user import User, UserRole
+from conftest import register_and_verify
 
 
 async def seed_offers_and_slots(
@@ -181,8 +184,7 @@ async def test_purchase_requires_payment_before_booking(
     )
     assert unauthorized.status_code == 401
 
-    registered = await client.post("/auth/register", json=register_payload)
-    assert registered.status_code == 201
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, slot_one_id)
     assert order["status"] == "pending"
@@ -234,6 +236,61 @@ async def test_purchase_requires_payment_before_booking(
     assert conflict.status_code == 409
 
 
+async def test_unverified_email_cannot_pay_or_book(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    register_payload: dict[str, str],
+    monkeypatch,
+) -> None:
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+    single_id, package_id, slot_one_id, _, _, _ = await seed_offers_and_slots(
+        session_factory
+    )
+
+    registered = await client.post("/auth/register", json=register_payload)
+    assert registered.status_code == 201
+    token = parse_qs(urlparse(registered.json()["dev_verification_url"]).query)["token"][
+        0
+    ]
+
+    async with session_factory() as session:
+        user_package = LessonPackage(
+            user_id=UUID(registered.json()["id"]),
+            offer_id=package_id,
+            total_lessons=1,
+            remaining_lessons=1,
+            status=LessonPackageStatus.ACTIVE.value,
+            expires_at=datetime.now(UTC) + timedelta(days=30),
+        )
+        session.add(user_package)
+        await session.flush()
+        user_package_id = user_package.id
+        await session.commit()
+
+    blocked_payment = await client.post(
+        "/individual-lessons/purchase",
+        json={"offer_id": str(single_id), "slot_id": str(slot_one_id)},
+    )
+    assert blocked_payment.status_code == 403
+    assert "Подтвердите email" in blocked_payment.json()["detail"]
+
+    blocked_booking = await client.post(
+        "/individual-lessons/book",
+        json={"package_id": str(user_package_id), "slot_id": str(slot_one_id)},
+    )
+    assert blocked_booking.status_code == 403
+
+    verified = await client.post("/auth/verify-email", json={"token": token})
+    assert verified.status_code == 200
+
+    allowed_booking = await client.post(
+        "/individual-lessons/book",
+        json={"package_id": str(user_package_id), "slot_id": str(slot_one_id)},
+    )
+    assert allowed_booking.status_code == 200
+
+
 async def test_one_time_promo_code_discounts_payment(
     client: AsyncClient,
     session_factory: async_sessionmaker[AsyncSession],
@@ -247,7 +304,7 @@ async def test_one_time_promo_code_discounts_payment(
         session.add(PromoCode(code="PERVIY", discount_percent=33.33, offer_id=single_id))
         await session.commit()
 
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, one_id, " perviy ")
     assert order["discount_minor"] == 50_000
@@ -278,7 +335,7 @@ async def test_promo_code_does_not_apply_to_another_offer(
         session.add(PromoCode(code="BESPLATNO", discount_percent=100, offer_id=single_id))
         await session.commit()
 
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     wrong_offer = await client.post(
         "/individual-lessons/purchase",
@@ -326,7 +383,7 @@ async def test_pending_payment_keeps_slot_reserved(
     fake = FakeYooKassa()
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, slot_one_id)
     payment_id = payment_id_for(order, fake)
@@ -357,7 +414,7 @@ async def test_late_payment_for_expired_order_books_slot(
     fake = FakeYooKassa()
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, slot_one_id)
     payment_id = payment_id_for(order, fake)
@@ -389,7 +446,7 @@ async def test_late_payment_when_slot_is_taken_keeps_lesson_in_package(
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
 
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
     order_a = await purchase(client, single_id, slot_one_id)
     payment_a = payment_id_for(order_a, fake)
     fake.set_status(payment_a, "succeeded")
@@ -409,7 +466,7 @@ async def test_late_payment_when_slot_is_taken_keeps_lesson_in_package(
         "name": "Борис",
         "email": "boris@example.com",
     }
-    await client.post("/auth/register", json=second_payload)
+    await register_and_verify(client, session_factory, second_payload)
     order_b = await purchase(client, single_id, slot_one_id)
 
     await send_webhook(client, payment_a, "payment.succeeded")
@@ -447,7 +504,7 @@ async def test_duplicate_webhook_is_idempotent(
     fake = FakeYooKassa()
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, slot_one_id)
     await confirm(client, order, fake)
@@ -471,7 +528,7 @@ async def test_promo_code_is_reserved_for_pending_order(
         session.add(PromoCode(code="PERVIY", discount_percent=33.33, offer_id=single_id))
         await session.commit()
 
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
     order = await purchase(client, single_id, one_id, "PERVIY")
 
     second = await client.post(
@@ -512,7 +569,7 @@ async def test_canceled_payment_releases_slot_and_promo(
         session.add(PromoCode(code="PERVIY", discount_percent=33.33, offer_id=single_id))
         await session.commit()
 
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
     order = await purchase(client, single_id, slot_one_id, "PERVIY")
     payment_id = payment_id_for(order, fake)
     fake.set_status(payment_id, "canceled")
@@ -541,7 +598,7 @@ async def test_cancel_returns_lesson_to_package_and_frees_slot(
     fake = FakeYooKassa()
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, _, _, _, slot_three_id = await seed_offers_and_slots(session_factory)
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, slot_three_id)
     await confirm(client, order, fake)
@@ -594,7 +651,7 @@ async def test_student_cannot_cancel_too_late_but_teacher_can(
         await session.commit()
         near_slot_id = near_slot.id
 
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
     order = await purchase(client, single_id, near_slot_id)
     await confirm(client, order, fake)
 
@@ -613,7 +670,7 @@ async def test_student_cannot_cancel_too_late_but_teacher_can(
         "password": "teacher-secret-123",
         "timezone": "Europe/Moscow",
     }
-    assert (await client.post("/auth/register", json=teacher_payload)).status_code == 201
+    await register_and_verify(client, session_factory, teacher_payload)
     async with session_factory() as session:
         teacher = await session.scalar(
             select(User).where(User.email == teacher_payload["email"])
@@ -650,7 +707,7 @@ async def test_reschedule_moves_booking_and_clears_meeting_url(
     _, package_offer_id, _, _, slot_two_id, slot_three_id = await seed_offers_and_slots(
         session_factory
     )
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, package_offer_id, slot_three_id)
     await confirm(client, order, fake)
@@ -700,7 +757,7 @@ async def test_student_cannot_cancel_another_students_booking(
     fake = FakeYooKassa()
     monkeypatch.setattr("app.services.payments._yookassa", fake)
     single_id, _, _, _, _, slot_three_id = await seed_offers_and_slots(session_factory)
-    await client.post("/auth/register", json=register_payload)
+    await register_and_verify(client, session_factory, register_payload)
 
     order = await purchase(client, single_id, slot_three_id)
     await confirm(client, order, fake)
@@ -712,7 +769,7 @@ async def test_student_cannot_cancel_another_students_booking(
         "name": "Борис",
         "email": "boris@example.com",
     }
-    await client.post("/auth/register", json=second_payload)
+    await register_and_verify(client, session_factory, second_payload)
 
     forbidden = await client.post(f"/individual-lessons/bookings/{booking_id}/cancel")
     assert forbidden.status_code == 404

@@ -54,6 +54,9 @@ class UnisenderGoEmailSender:
                 "subject": message.subject,
                 "from_email": self._settings.email_from,
                 "from_name": self._settings.email_from_name,
+                # Транзакционные ссылки (сброс пароля) не должны оборачиваться
+                # в домен трекинга: если он недоступен, ссылка не открывается.
+                "track_links": 0,
             }
         }
 
@@ -72,8 +75,44 @@ class UnisenderGoEmailSender:
             raise RuntimeError("Unisender Go не принял письмо")
 
 
+class ResendEmailSender:
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    def build_payload(self, message: EmailMessage) -> dict[str, object]:
+        name = self._settings.email_from_name.strip()
+        sender = f"{name} <{self._settings.email_from}>" if name else self._settings.email_from
+        payload: dict[str, object] = {
+            "from": sender,
+            "to": [message.to],
+            "subject": message.subject,
+            "text": message.text,
+        }
+        if message.html:
+            payload["html"] = message.html
+        return payload
+
+    async def send(self, message: EmailMessage) -> None:
+        url = f"{self._settings.resend_api_url.rstrip('/')}/emails"
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                url,
+                headers={"Authorization": f"Bearer {self._settings.resend_api_key}"},
+                json=self.build_payload(message),
+            )
+            response.raise_for_status()
+
+        if not response.json().get("id"):
+            raise RuntimeError("Resend не принял письмо")
+
+
 def get_email_sender(settings: Settings | None = None) -> EmailSender:
     current = settings or get_settings()
+    if current.email_provider == "resend":
+        if not current.resend_api_key or not current.email_from:
+            raise EmailNotConfiguredError("Не заданы ключ Resend или адрес отправителя")
+        return ResendEmailSender(current)
+
     if current.email_provider == "unisender":
         if not current.unisender_api_key or not current.email_from:
             raise EmailNotConfiguredError("Не заданы ключ Unisender Go или адрес отправителя")
@@ -111,6 +150,41 @@ async def send_password_reset_email(
                 f"<p><a href=\"{safe_url}\">Задать новый пароль</a></p>"
                 f"<p>Ссылка действует {ttl_minutes} минут. "
                 "Если вы не запрашивали восстановление, просто проигнорируйте письмо.</p>"
+            ),
+        )
+    )
+
+
+async def send_verification_email(
+    sender: EmailSender,
+    *,
+    to: str,
+    name: str,
+    verification_url: str,
+    ttl_minutes: int,
+) -> None:
+    safe_name = html.escape(name)
+    safe_url = html.escape(verification_url, quote=True)
+    hours = ttl_minutes // 60
+    ttl_text = f"{hours} ч." if hours else f"{ttl_minutes} мин."
+    await sender.send(
+        EmailMessage(
+            to=to,
+            subject="Подтвердите email — Levickaya Piano",
+            text=(
+                f"Здравствуйте, {name}!\n\n"
+                "Аккаунт Levickaya Piano создан. Подтвердите email, чтобы оплачивать "
+                "занятия и записываться на уроки.\n"
+                f"Ссылка действует {ttl_text}:\n{verification_url}\n\n"
+                "Если вы не регистрировались, просто проигнорируйте письмо."
+            ),
+            html=(
+                f"<p>Здравствуйте, {safe_name}!</p>"
+                "<p>Аккаунт Levickaya Piano создан. Подтвердите email, чтобы "
+                "оплачивать занятия и записываться на уроки.</p>"
+                f"<p><a href=\"{safe_url}\">Подтвердить email</a></p>"
+                f"<p>Ссылка действует {ttl_text}. "
+                "Если вы не регистрировались, просто проигнорируйте письмо.</p>"
             ),
         )
     )

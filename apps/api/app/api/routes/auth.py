@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.core.rate_limit import enforce_rate_limit
 from app.db import get_session
 from app.models.user import User
@@ -14,14 +14,18 @@ from app.schemas.auth import (
     LoginIn,
     MessageOut,
     RegisterIn,
+    RegisterOut,
+    ResendVerificationOut,
     ResetPasswordIn,
     UserOut,
+    VerifyEmailIn,
 )
 from app.services import auth as auth_service
 from app.services.email import (
     EmailNotConfiguredError,
     get_email_sender,
     send_password_reset_email,
+    send_verification_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,13 +56,36 @@ def _clear_session_cookie(response: Response) -> None:
     )
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+async def _issue_email_verification(
+    session: AsyncSession, user: User, settings: Settings
+) -> tuple[str, bool]:
+    """Возвращает ссылку и признак того, что письмо удалось отправить."""
+    token = await auth_service.create_email_verification(session, user)
+    url = f"{settings.frontend_url}/verify-email?token={token}"
+    try:
+        await send_verification_email(
+            get_email_sender(settings),
+            to=user.email,
+            name=user.name,
+            verification_url=url,
+            ttl_minutes=settings.email_verification_ttl_minutes,
+        )
+    except Exception:
+        # Регистрация не должна ломаться из-за недоступности почты: ссылку можно
+        # запросить повторно из кабинета.
+        logger.exception("Не удалось отправить письмо подтверждения email")
+        return url, False
+    return url, True
+
+
+@router.post("/register", response_model=RegisterOut, status_code=status.HTTP_201_CREATED)
 async def register(
     payload: RegisterIn,
     request: Request,
     response: Response,
     session: AsyncSession = Depends(get_session),
-) -> User:
+) -> RegisterOut:
+    settings = get_settings()
     await enforce_rate_limit(
         scope="register",
         identity=payload.email,
@@ -87,7 +114,50 @@ async def register(
         ip_address=request.client.host if request.client else None,
     )
     _set_session_cookie(response, token)
-    return user
+    verification_url, sent = await _issue_email_verification(session, user, settings)
+    result = RegisterOut.model_validate(user, from_attributes=True)
+    result.verification_email_sent = sent
+    result.dev_verification_url = verification_url if settings.is_local else None
+    return result
+
+
+@router.post("/resend-verification", response_model=ResendVerificationOut)
+async def resend_verification(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> ResendVerificationOut:
+    settings = get_settings()
+    await enforce_rate_limit(
+        scope="resend-verification",
+        identity=user.email,
+        limit=5,
+        window_seconds=60 * 60,
+    )
+    if user.email_verified_at is not None:
+        return ResendVerificationOut(message="Email уже подтверждён.")
+
+    verification_url, sent = await _issue_email_verification(session, user, settings)
+    return ResendVerificationOut(
+        message="Мы отправили ссылку для подтверждения email.",
+        verification_email_sent=sent,
+        dev_verification_url=verification_url if settings.is_local else None,
+    )
+
+
+@router.post("/verify-email", response_model=MessageOut)
+async def verify_email(
+    payload: VerifyEmailIn,
+    session: AsyncSession = Depends(get_session),
+) -> MessageOut:
+    verified = await auth_service.verify_email(session, token=payload.token)
+    if not verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ссылка недействительна или истекла",
+        )
+    return MessageOut(
+        message="Email подтверждён. Теперь можно оплачивать занятия и записываться на урок."
+    )
 
 
 @router.post("/login", response_model=UserOut)

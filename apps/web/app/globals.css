@@ -1480,6 +1480,10 @@ svg {
   color: var(--accent);
 }
 
+.verification-notice {
+  margin-block-end: 1.5rem;
+}
+
 /* Panel */
 
 .panel {
@@ -1714,6 +1718,22 @@ svg {
 }
 
 /* Motion */
+
+.lesson-booking-hero {
+  padding-block-end: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.lesson-booking-section {
+  padding-block-start: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.lesson-booking-section .section-head {
+  margin-block-end: 0;
+}
+
+.lesson-booking-section .lesson-booking {
+  margin-block-start: 0;
+}
 
 .lesson-booking {
   display: grid;

@@ -29,6 +29,12 @@ class UserOut(BaseModel):
     created_at: datetime
 
 
+class RegisterOut(UserOut):
+    verification_email_sent: bool = True
+    # Только для локальной разработки: в prod ссылку из письма никто не получает.
+    dev_verification_url: str | None = None
+
+
 class RegisterIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     email: EmailStr
@@ -84,6 +90,10 @@ class ResetPasswordIn(BaseModel):
     new_password: Password
 
 
+class VerifyEmailIn(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+
+
 class ProfileUpdateIn(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     timezone: str | None = None
@@ -107,3 +117,8 @@ class ProfileUpdateIn(BaseModel):
 
 class MessageOut(BaseModel):
     message: str
+
+
+class ResendVerificationOut(MessageOut):
+    verification_email_sent: bool = True
+    dev_verification_url: str | None = None

@@ -1,9 +1,11 @@
 import os
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -16,7 +18,7 @@ os.environ["COURSES_ENABLED"] = "true"
 
 from app.db import get_session  # noqa: E402
 from app.main import create_app  # noqa: E402
-from app.models import Base  # noqa: E402
+from app.models import Base, User  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -66,3 +68,18 @@ def register_payload() -> dict[str, str]:
         "password": "very-secret-123",
         "timezone": "Europe/Moscow",
     }
+
+
+async def register_and_verify(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    payload: dict[str, str],
+) -> None:
+    """Регистрирует через API и сразу помечает email подтверждённым в БД."""
+    response = await client.post("/auth/register", json=payload)
+    assert response.status_code == 201, response.text
+    async with session_factory() as session:
+        user = await session.scalar(select(User).where(User.email == payload["email"]))
+        assert user is not None
+        user.email_verified_at = datetime.now(UTC)
+        await session.commit()

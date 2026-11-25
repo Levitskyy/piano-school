@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     session_cookie_name: str = "ps_session"
     session_ttl_days: int = 30
     password_reset_ttl_minutes: int = 60
+    email_verification_ttl_minutes: int = 60 * 24
     lesson_cancellation_hours: int = 24
 
     email_provider: str = "console"
@@ -34,6 +35,8 @@ class Settings(BaseSettings):
     email_from_name: str = "Levickaya Piano"
     unisender_api_key: str = ""
     unisender_api_url: str = "https://goapi.unisender.ru/ru/transactional/api/v1"
+    resend_api_key: str = ""
+    resend_api_url: str = "https://api.resend.com"
 
     yookassa_shop_id: str = ""
     yookassa_secret_key: str = ""
