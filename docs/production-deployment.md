@@ -79,7 +79,7 @@ fail2ban-client status
 
 1. Подключить домен, выпустить сертификат Let's Encrypt (certbot), убрать self-signed и `X-Robots-Tag`.
 2. Заполнить ключи ЮKassa, `YOOKASSA_RETURN_URL` и webhook в кабинете: `https://<домен>/api/payments/yookassa/webhook`.
-3. Настроить Unisender Go (SPF/DKIM) и `EMAIL_PROVIDER=unisender`, `EMAIL_FROM`, `UNISENDER_API_KEY`.
+3. Подтвердить домен в Resend (SPF/DKIM), задать `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`.
 4. Заполнить юридические страницы и цены (см. чек-лист в `docs/project-foundation.md`, раздел 10).
 5. Настроить ежедневный бэкап `pgdata` + `redisdata` (например, `pg_dump` в cron + копия на удалённое хранилище).
 

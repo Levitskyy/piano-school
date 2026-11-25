@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     email_from_name: str = "Levickaya Piano"
     unisender_api_key: str = ""
     unisender_api_url: str = "https://goapi.unisender.ru/ru/transactional/api/v1"
+    resend_api_key: str = ""
+    resend_api_url: str = "https://api.resend.com"
 
     yookassa_shop_id: str = ""
     yookassa_secret_key: str = ""
