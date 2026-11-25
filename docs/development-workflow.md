@@ -34,7 +34,7 @@ Workflow `.github/workflows/deploy.yml`:
 4. `docker compose up -d --build` — пересобирает изменённые образы и перезапускает сервисы;
 5. применяет миграции `alembic upgrade head`.
 
-Файлы `.env`, самоподписанный сертификат и логи находятся в `.gitignore` и при деплое не перезаписываются.
+Файлы `.env`, TLS-сертификат (`infra/production/selfsigned.*` — копия сертификата Let's Encrypt) и логи находятся в `.gitignore` и при деплое не перезаписываются.
 
 Следить за деплоем: **GitHub → Actions → Deploy to VPS**.
 
