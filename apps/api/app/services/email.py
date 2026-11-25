@@ -75,8 +75,44 @@ class UnisenderGoEmailSender:
             raise RuntimeError("Unisender Go не принял письмо")
 
 
+class ResendEmailSender:
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    def build_payload(self, message: EmailMessage) -> dict[str, object]:
+        name = self._settings.email_from_name.strip()
+        sender = f"{name} <{self._settings.email_from}>" if name else self._settings.email_from
+        payload: dict[str, object] = {
+            "from": sender,
+            "to": [message.to],
+            "subject": message.subject,
+            "text": message.text,
+        }
+        if message.html:
+            payload["html"] = message.html
+        return payload
+
+    async def send(self, message: EmailMessage) -> None:
+        url = f"{self._settings.resend_api_url.rstrip('/')}/emails"
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(
+                url,
+                headers={"Authorization": f"Bearer {self._settings.resend_api_key}"},
+                json=self.build_payload(message),
+            )
+            response.raise_for_status()
+
+        if not response.json().get("id"):
+            raise RuntimeError("Resend не принял письмо")
+
+
 def get_email_sender(settings: Settings | None = None) -> EmailSender:
     current = settings or get_settings()
+    if current.email_provider == "resend":
+        if not current.resend_api_key or not current.email_from:
+            raise EmailNotConfiguredError("Не заданы ключ Resend или адрес отправителя")
+        return ResendEmailSender(current)
+
     if current.email_provider == "unisender":
         if not current.unisender_api_key or not current.email_from:
             raise EmailNotConfiguredError("Не заданы ключ Unisender Go или адрес отправителя")
