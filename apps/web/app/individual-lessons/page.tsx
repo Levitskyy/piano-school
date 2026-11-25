@@ -40,7 +40,10 @@ export default async function IndividualLessonsPage() {
           </p>
         </section>
 
-        <section className="section" aria-labelledby="booking-title">
+        <section
+          className="section lesson-booking-section"
+          aria-labelledby="booking-title"
+        >
           <div className="section-head">
             <h2 id="booking-title" className="visually-hidden">
               Выбор занятия
