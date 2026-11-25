@@ -32,6 +32,7 @@ def test_unisender_payload() -> None:
     assert message["recipients"] == [{"email": "student@example.com"}]
     assert message["from_email"] == "no-reply@example.com"
     assert message["body"] == {"plaintext": "Текст", "html": "<p>Текст</p>"}
+    assert message["track_links"] == 0
 
 
 def test_local_uses_console_sender() -> None:

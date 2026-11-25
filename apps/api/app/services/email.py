@@ -54,6 +54,9 @@ class UnisenderGoEmailSender:
                 "subject": message.subject,
                 "from_email": self._settings.email_from,
                 "from_name": self._settings.email_from_name,
+                # Транзакционные ссылки (сброс пароля) не должны оборачиваться
+                # в домен трекинга: если он недоступен, ссылка не открывается.
+                "track_links": 0,
             }
         }
 
