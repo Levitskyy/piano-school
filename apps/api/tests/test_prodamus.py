@@ -121,7 +121,9 @@ async def test_prodamus_purchase_creates_signed_link_without_granting_access(
     assert query["callbackType"] == ["json"]
     assert query["payment_method"] == ["monetaworld"]
     assert query["currency"] == ["rub"]
-    assert query["urlSuccess"] == ["https://site.test/payment/success"]
+    assert query["urlSuccess"] == [
+        f"https://site.test/payment/success?order_num={order['order_id']}"
+    ]
     assert query["order_id"] == [order["order_id"]]
     assert query["customer_email"] == [register_payload["email"]]
     assert query["products[0][price]"] == ["1500.00"]
