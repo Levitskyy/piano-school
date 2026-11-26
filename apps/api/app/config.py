@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     prodamus_secret_key: str = ""
     prodamus_payment_method: str = "monetaworld"
     prodamus_currency: str = "rub"
+    prodamus_success_url: str = "http://localhost:3000"
     payment_reservation_minutes: int = 15
 
     @property

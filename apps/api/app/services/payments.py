@@ -113,7 +113,7 @@ def prodamus_signature(values: dict, secret_key: str) -> str:
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,
-    )
+    ).replace("/", "\\/")
     return hmac.new(
         secret_key.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
     ).hexdigest()
@@ -137,6 +137,7 @@ def _prodamus_payment_url(
         "customer_email": user.email,
         "payment_method": settings.prodamus_payment_method,
         "currency": settings.prodamus_currency,
+        "urlSuccess": f"{settings.prodamus_success_url.rstrip('/')}/payment/success",
         "products": [
             {
                 "name": f"Индивидуальный урок: {offer.title}",
