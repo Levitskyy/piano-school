@@ -20,7 +20,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentSucces
   if (!user) return <ClientRedirect to="/login?next=/individual-lessons" />;
 
   let status: string | null = null;
-  const orderRef = orderId ?? orderNum;
+  const orderRef = orderNum ?? orderId;
   if (orderRef) {
     try {
       const response = await fetchWithSession(`/payments/${encodeURIComponent(orderRef)}`);

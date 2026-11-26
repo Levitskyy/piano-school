@@ -137,7 +137,9 @@ def _prodamus_payment_url(
         "customer_email": user.email,
         "payment_method": settings.prodamus_payment_method,
         "currency": settings.prodamus_currency,
-        "urlSuccess": f"{settings.prodamus_success_url.rstrip('/')}/payment/success",
+        "urlSuccess": (
+            f"{settings.prodamus_success_url.rstrip('/')}/payment/success?order_num={order.id}"
+        ),
         "products": [
             {
                 "name": f"Индивидуальный урок: {offer.title}",
