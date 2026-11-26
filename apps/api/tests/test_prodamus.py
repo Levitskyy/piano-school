@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import json
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -23,11 +25,21 @@ from test_individual_lessons import YOOKASSA_WEBHOOK_HEADERS, seed_offers_and_sl
 SECRET = "prodamus-test-secret"
 
 
+def test_prodamus_signature_escapes_slashes() -> None:
+    expected = hmac.new(
+        SECRET.encode(),
+        b'{"url":"https:\\/\\/site.test\\/success"}',
+        hashlib.sha256,
+    ).hexdigest()
+    assert prodamus_signature({"url": "https://site.test/success"}, SECRET) == expected
+
+
 class SettingsStub:
     prodamus_secret_key = SECRET
     prodamus_form_url = "https://payform.test/"
     prodamus_payment_method = "monetaworld"
     prodamus_currency = "rub"
+    prodamus_success_url = "https://site.test"
     payment_reservation_minutes = 15
     yookassa_shop_id = ""
     yookassa_secret_key = ""
@@ -109,6 +121,7 @@ async def test_prodamus_purchase_creates_signed_link_without_granting_access(
     assert query["callbackType"] == ["json"]
     assert query["payment_method"] == ["monetaworld"]
     assert query["currency"] == ["rub"]
+    assert query["urlSuccess"] == ["https://site.test/payment/success"]
     assert query["order_id"] == [order["order_id"]]
     assert query["customer_email"] == [register_payload["email"]]
     assert query["products[0][price]"] == ["1500.00"]
@@ -120,6 +133,7 @@ async def test_prodamus_purchase_creates_signed_link_without_granting_access(
         "customer_email": query["customer_email"][0],
         "payment_method": query["payment_method"][0],
         "currency": query["currency"][0],
+        "urlSuccess": query["urlSuccess"][0],
         "products": [
             {
                 "name": query["products[0][name]"][0],

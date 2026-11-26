@@ -89,9 +89,9 @@ make promo-code percent=33.33 offer=single   # 1500 ₽ → 1000 ₽, тольк
   сервер проверяет IP и уточняет статус платежа через API. На проде ключи заполнены и
   тестовый платёж прошёл 25.11.2026: заказ `succeeded`, занятие и пакет созданы.
 - Prodamus: `PRODAMUS_FORM_URL`, `PRODAMUS_SECRET_KEY`, `PRODAMUS_PAYMENT_METHOD=monetaworld`,
-  `PRODAMUS_CURRENCY=rub`; webhook `https://levickaya.ru/api/payments/prodamus/webhook`.
-  Подпись в заголовке `Sign` обязательна; страница результата доступ не выдаёт. На проде
-  эти переменные пока не заданы, поэтому способ оплаты не активен.
+  `PRODAMUS_CURRENCY=rub`, `PRODAMUS_SUCCESS_URL=https://levickaya.ru`; webhook
+  `https://levickaya.ru/api/payments/prodamus/webhook`. Подпись в заголовке `Sign`
+  обязательна; страница результата доступ не выдаёт. Тестовый платёж 26.11.2026 прошёл.
 
 Цены и промокоды можно менять и в админке: `/admin/products` и `/admin/promo-codes`
 (нужна роль `admin`). CLI из таблицы ниже остаётся для автоматизации.
