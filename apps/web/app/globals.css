@@ -1565,6 +1565,52 @@ svg {
   color: var(--ink);
 }
 
+.panel-switch-row {
+  max-inline-size: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.panel-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding-block: 0.6rem;
+}
+
+.panel-switch-label {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.panel-switch ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-switch a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 1.5rem;
+  border-block-end: 1px solid transparent;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.panel-switch a:hover,
+.panel-switch a[aria-current="page"] {
+  border-block-end-color: var(--accent);
+  color: var(--ink);
+}
+
 .panel-main {
   max-inline-size: var(--container);
   margin-inline: auto;

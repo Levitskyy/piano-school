@@ -24,5 +24,9 @@ export default async function AdminLayout({
     );
   }
 
-  return <PanelShell user={user} nav={adminNav}>{children}</PanelShell>;
+  return (
+    <PanelShell user={user} panel="admin" nav={adminNav}>
+      {children}
+    </PanelShell>
+  );
 }

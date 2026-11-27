@@ -16,7 +16,7 @@ export default async function TeacherPanelLayout({
   if (user.role === "student") return <ClientRedirect to="/account" />;
 
   return (
-    <PanelShell user={user} nav={teacherNav}>
+    <PanelShell user={user} panel="teacher" nav={teacherNav}>
       {children}
     </PanelShell>
   );
