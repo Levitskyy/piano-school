@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // CI уже гоняет pnpm --filter web typecheck; на VPS этот шаг съедал память и ронял деплой.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   // Локальная сеть: dev-сервер открывается по адресу Windows-хоста.
   // При смене сети обновите IP здесь.
   allowedDevOrigins: [
