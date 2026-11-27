@@ -17,7 +17,7 @@ export default async function AccountLayout({
   if (!user) return <ClientRedirect to="/login?next=/account" />;
 
   return (
-    <PanelShell user={user} nav={accountNav}>
+    <PanelShell user={user} panel="account" nav={accountNav}>
       {user.email_verified_at ? null : (
         <div className="form-notice verification-notice" role="status">
           <p>

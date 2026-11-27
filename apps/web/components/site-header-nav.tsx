@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { navigation, site } from "@/content/landing";
 import type { User } from "@/lib/auth";
+import { defaultPanelHref } from "@/lib/panels";
 
 const POPOVER_OPEN_SELECTOR = ":is(:popover-open, .\\:popover-open)";
 
@@ -24,11 +25,7 @@ export function SiteHeaderNav({ user }: SiteHeaderNavProps) {
   const lastWidthRef = useRef(0);
   const [isWide, setIsWide] = useState(false);
 
-  const accountHref = !user
-    ? "/login"
-    : user.role === "teacher" || user.role === "admin"
-      ? "/teacher-panel"
-      : "/account";
+  const accountHref = defaultPanelHref(user?.role);
 
   const measure = useCallback(() => {
     const inner = innerRef.current;
