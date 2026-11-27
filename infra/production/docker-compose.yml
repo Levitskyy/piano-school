@@ -53,10 +53,9 @@ services:
     expose:
       - "8000"
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      # Redis не нужен API для старта: rate limiter fail-open, см. test_security.
+      - redis
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"]
       interval: 30s
@@ -78,10 +77,9 @@ services:
       FRONTEND_URL: ${PUBLIC_BASE_URL}
       YOOKASSA_RETURN_URL: ${PUBLIC_BASE_URL}
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      # Воркер сам ретраит подключение к Redis, не блокируя поднятие стека.
+      - redis
     logging: *logging
 
   web:

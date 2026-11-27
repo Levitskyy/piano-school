@@ -22,8 +22,14 @@ git push -u origin fix/payment-webhook
 ```
 
 Дальше на GitHub открываете **Pull Request** `fix/payment-webhook → master`.
-В PR автоматически запускается `.github/workflows/ci.yml`: ruff, pytest, ESLint, typecheck и сборка Next.js.
+В PR автоматически запускается `.github/workflows/ci.yml`: ruff, pytest, аудит зависимостей
+(`pnpm audit`, `pip-audit`), проверка прод-конфига Compose, ESLint, typecheck и сборка Next.js.
 Мердж разрешён только после зелёных проверок (branch protection включён).
+
+Ручной запуск деплоя через `workflow_dispatch` убран: деплой запускается только push’ем в
+`master` после PR и повторно прогоняет те же проверки. После деплоя обязательно проверяется
+`GET /api/health`; если сайт не поднялся, workflow красный. Actions закреплены по SHA,
+обновляет их Dependabot (`.github/dependabot.yml`).
 
 ## Что происходит после мерджа
 
@@ -46,6 +52,13 @@ Workflow `.github/workflows/deploy.yml`:
   потом на сервере добавьте в `/opt/piano-school/.env` **до** мерджа — иначе сервис может не подняться.
 - Если меняете `docker-compose.yml` или `nginx.conf`, деплой сам перезапустит nginx и остальные сервисы.
 - Ветку после мерджа можно удалить (кнопка на GitHub или `git branch -d <branch>` локально).
+
+## Настройки GitHub, которые не задаются кодом
+
+Проверить один раз в `Settings → Branches` (нужны права администратора): обязательные
+проверки `api` и `web`, `Require branches to be up to date before merging`, запрет force push
+и удаления `master`, применение правил к администраторам. Также включить Secret scanning
+и Push protection — для публичного репозитория это бесплатно и ловит секреты до коммита.
 
 ## Если GitHub недоступен из браузера
 
