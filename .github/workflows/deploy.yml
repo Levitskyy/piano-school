@@ -36,7 +36,10 @@ jobs:
             | uvx --from pip-audit==2.10.1 pip-audit -r /dev/stdin --disable-pip --no-deps
       - name: Validate production Compose config
         working-directory: .
-        run: docker compose --env-file infra/production/.env.example -f infra/production/docker-compose.yml config --quiet
+        # Compose ожидает корневой .env (env_file в сервисах); в CI его нет.
+        run: |
+          touch .env
+          docker compose --env-file infra/production/.env.example -f infra/production/docker-compose.yml config --quiet
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.2.0
@@ -88,5 +91,6 @@ jobs:
 
             # Здоровье сайта и API проверяем уже после деплоя, провал — красный workflow.
             echo "==> smoke"
-            curl -fsS --max-time 10 --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/api/health -o /dev/null
+            # Порт 3000 не проброшен на хост — проверяем изнутри сети compose.
+            timeout 30 $DC exec -T web node -e "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
             echo "Deployed $SHA"

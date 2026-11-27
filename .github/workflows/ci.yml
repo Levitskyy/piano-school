@@ -29,7 +29,10 @@ jobs:
             | uvx --from pip-audit==2.10.1 pip-audit -r /dev/stdin --disable-pip --no-deps
       - name: Validate production Compose config
         working-directory: .
-        run: docker compose --env-file infra/production/.env.example -f infra/production/docker-compose.yml config --quiet
+        # Compose ожидает корневой .env (env_file в сервисах); в CI его нет.
+        run: |
+          touch .env
+          docker compose --env-file infra/production/.env.example -f infra/production/docker-compose.yml config --quiet
 
   web:
     runs-on: ubuntu-latest
