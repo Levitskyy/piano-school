@@ -32,6 +32,124 @@ async def login_as_admin(
     assert response.status_code == 200
 
 
+async def test_admin_manages_lesson_packages(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    payload = {
+        "name": "Ученик",
+        "email": "student@example.com",
+        "password": "student-secret-123",
+        "timezone": "Europe/Moscow",
+    }
+    assert (await client.post("/auth/register", json=payload)).status_code == 201
+    assert (await client.post("/auth/login", json={
+        "email": payload["email"],
+        "password": payload["password"],
+    })).status_code == 200
+    assert (await client.post("/admin/products", json={
+        "title": "Чужой пакет", "lessons_count": 2, "price": "1000",
+    })).status_code == 403
+    assert (await client.delete("/admin/products/single")).status_code == 403
+    client.cookies.clear()
+
+    await login_as_admin(client, session_factory)
+
+    created = await client.post(
+        "/admin/products",
+        json={
+            "title": "Пакет из 6 уроков",
+            "description": "Шесть занятий с обратной связью",
+            "lessons_count": 6,
+            "price": "7490",
+            "validity_days": 180,
+        },
+    )
+    assert created.status_code == 201, created.text
+    offer = created.json()
+    assert offer["slug"] == "paket-iz-6-urokov"
+    assert offer["kind"] == "package"
+    assert offer["price_minor"] == 749_000
+    assert offer["validity_days"] == 180
+    assert offer["is_active"] is True
+
+    public = await client.get("/individual-lessons/offers")
+    public_offer = next(item for item in public.json() if item["slug"] == offer["slug"])
+    assert public_offer["validity_days"] == 180
+
+    updated = await client.patch(
+        f"/admin/products/{offer['slug']}",
+        json={
+            "title": "Пакет из 5 уроков",
+            "description": "Обновлённое описание",
+            "lessons_count": 5,
+            "price": "6999.99",
+            "validity_days": 200,
+            "is_active": False,
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    changed = updated.json()
+    assert changed["title"] == "Пакет из 5 уроков"
+    assert changed["description"] == "Обновлённое описание"
+    assert changed["lessons_count"] == 5
+    assert changed["price_minor"] == 699_999
+    assert changed["validity_days"] == 200
+    assert changed["is_active"] is False
+
+    public = await client.get("/individual-lessons/offers")
+    assert all(item["slug"] != offer["slug"] for item in public.json())
+
+    enabled = await client.patch(
+        f"/admin/products/{offer['slug']}", json={"is_active": True}
+    )
+    assert enabled.status_code == 200
+    assert enabled.json()["is_active"] is True
+    # Поле не передано — срок действия должен остаться прежним.
+    assert enabled.json()["validity_days"] == 200
+
+    cleared = await client.patch(
+        f"/admin/products/{offer['slug']}", json={"validity_days": None}
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["validity_days"] is None
+
+    duplicate = await client.post(
+        "/admin/products",
+        json={
+            "title": "Дубль",
+            "slug": "paket-iz-6-urokov",
+            "lessons_count": 2,
+            "price": "1000",
+        },
+    )
+    assert duplicate.status_code == 409
+
+    invalid = await client.post(
+        "/admin/products",
+        json={"title": "Некорректный", "lessons_count": 0, "price": "1000"},
+    )
+    assert invalid.status_code == 422
+
+    promo = await client.post(
+        "/admin/promo-codes", json={"percent": "10", "offer_slug": offer["slug"]}
+    )
+    assert promo.status_code == 201, promo.text
+    blocked = await client.delete(f"/admin/products/{offer['slug']}")
+    assert blocked.status_code == 409
+    assert "Скройте" in blocked.json()["detail"]
+
+    disposable = await client.post(
+        "/admin/products",
+        json={"title": "Пробный пакет", "lessons_count": 3, "price": "2000"},
+    )
+    assert disposable.status_code == 201
+    deleted = await client.delete(f"/admin/products/{disposable.json()['slug']}")
+    assert deleted.status_code == 204
+    remaining = await client.get("/admin/products")
+    assert all(item["slug"] != disposable.json()["slug"] for item in remaining.json())
+
+
 async def test_admin_prices_and_promo_codes(
     client: AsyncClient,
     session_factory: async_sessionmaker[AsyncSession],

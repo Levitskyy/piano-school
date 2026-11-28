@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 const adminNav = [
   { href: "/admin", label: "Обзор" },
   { href: "/admin/users", label: "Пользователи" },
-  { href: "/admin/products", label: "Цены" },
+  { href: "/admin/products", label: "Тарифы" },
   { href: "/admin/promo-codes", label: "Промокоды" },
   { href: "/admin/orders", label: "Заказы" },
   { href: "/admin/settings", label: "Настройки" },

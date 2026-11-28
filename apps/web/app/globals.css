@@ -1747,15 +1747,49 @@ svg {
   border-block-end: 0;
 }
 
-.price-form {
+.offer-admin-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.offer-admin-card {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.offer-admin-card.is-inactive {
+  opacity: 0.72;
+}
+
+.offer-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.offer-admin-grid .field-wide {
+  grid-column: 1 / -1;
+}
+
+.offer-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.offer-admin-actions p {
+  margin: 0;
+}
+
+.offer-admin-actions-group {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  align-items: center;
-}
-
-.price-form input {
-  inline-size: 8.5rem;
 }
 
 .button:disabled {
