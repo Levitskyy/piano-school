@@ -1,16 +1,35 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# В контейнере код лежит в /app/app; локально — в <repo>/apps/api/app.
-# Default env_file ищется только локально, в контейнере переменные задаёт compose.
-ROOT_DIR = Path(__file__).resolve().parents[3]
+
+def _find_env_file() -> Path | None:
+    """Ищем .env только локально; в контейнере переменные задаёт compose.
+
+    Не привязываемся к глубине пути: локально код лежит в <repo>/apps/api/app,
+    а в образе — в /app/app, где родителей меньше.
+    """
+    candidates: list[Path] = []
+    explicit = os.getenv("ENV_FILE")
+    if explicit:
+        candidates.append(Path(explicit))
+    here = Path(__file__).resolve()
+    candidates.extend(parent / ".env" for parent in here.parents)
+    candidates.append(Path.cwd() / ".env")
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+LOCAL_ENV_FILE = _find_env_file()
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=ROOT_DIR / ".env",
+        env_file=LOCAL_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
     )
