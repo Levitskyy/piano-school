@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # В контейнере код лежит в /app/app; локально — в <repo>/apps/api/app.
 # Default env_file ищется только локально, в контейнере переменные задаёт compose.
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):

@@ -79,6 +79,13 @@ class PurchaseOrder(Base):
     discount_minor: Mapped[int] = mapped_column(Integer, default=0)
     total_minor: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(3), default="RUB")
+    # Снапшот тарифа на момент заказа: последующие правки в админке не должны
+    # менять уже оплаченный товар и выданный пакет. NULL — старый заказ, для
+    # него используется живая запись тарифа. validity_days=0 означает «без срока».
+    offer_title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    lessons_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    validity_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), default=PurchaseOrderStatus.PENDING.value, index=True
     )

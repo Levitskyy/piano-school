@@ -82,6 +82,7 @@ async def seed_offers_and_slots(
 class FakeYooKassa:
     def __init__(self) -> None:
         self.payments: dict[str, dict] = {}
+        self.bodies: dict[str, dict] = {}
 
     def set_status(self, payment_id: str, status: str) -> None:
         self.payments[payment_id]["status"] = status
@@ -105,6 +106,7 @@ class FakeYooKassa:
                 "amount": body["amount"],
                 "metadata": body["metadata"],
             }
+            self.bodies[payment_id] = body
             return {
                 "id": payment_id,
                 "confirmation": {"confirmation_url": "https://yookassa.test/pay"},
@@ -237,6 +239,72 @@ async def test_purchase_requires_payment_before_booking(
         json={"offer_id": str(package_id), "slot_id": str(slot_one_id)},
     )
     assert conflict.status_code == 409
+
+
+async def test_payment_and_package_use_offer_snapshot(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    register_payload: dict[str, str],
+    monkeypatch,
+) -> None:
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+    _, package_id, _, _, slot_two_id, _ = await seed_offers_and_slots(session_factory)
+    await register_and_verify(client, session_factory, register_payload)
+
+    order = await purchase(client, package_id, slot_two_id)
+    body = fake.bodies[payment_id_for(order, fake)]
+    assert body["description"] == "Индивидуальный урок: Пакет из 4 уроков"
+    assert body["amount"] == {"value": "5000.00", "currency": "RUB"}
+
+    # Админ меняет тариф после создания заказа, но до webhook'а.
+    async with session_factory() as session:
+        offer = await session.get(IndividualLessonOffer, package_id)
+        offer.title = "Совсем другой пакет"
+        offer.lessons_count = 7
+        offer.validity_days = 30
+        await session.commit()
+
+    await confirm(client, order, fake)
+
+    async with session_factory() as session:
+        user = await session.scalar(
+            select(User).where(User.email == register_payload["email"])
+        )
+        db_order = await session.get(PurchaseOrder, UUID(order["order_id"]))
+        assert db_order.offer_title == "Пакет из 4 уроков"
+        assert db_order.lessons_count == 4
+        assert db_order.validity_days == 180
+        db_package = (
+            await session.scalars(
+                select(LessonPackage).where(LessonPackage.user_id == user.id)
+            )
+        ).one()
+        assert db_package.total_lessons == 4
+        # Один урок сразу списан на запись, созданную при оплате.
+        assert db_package.remaining_lessons == 3
+        assert db_package.expires_at is not None
+
+
+async def test_long_offer_title_is_safe_for_payment_provider(
+    client: AsyncClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    register_payload: dict[str, str],
+    monkeypatch,
+) -> None:
+    fake = FakeYooKassa()
+    monkeypatch.setattr("app.services.payments._yookassa", fake)
+    single_id, _, slot_one_id, _, _, _ = await seed_offers_and_slots(session_factory)
+    async with session_factory() as session:
+        offer = await session.get(IndividualLessonOffer, single_id)
+        offer.title = "Очень длинное название пакета " * 8
+        await session.commit()
+    await register_and_verify(client, session_factory, register_payload)
+
+    order = await purchase(client, single_id, slot_one_id)
+    description = fake.bodies[payment_id_for(order, fake)]["description"]
+    assert description.startswith("Индивидуальный урок: ")
+    assert len(description) <= 128
 
 
 async def test_unverified_email_cannot_pay_or_book(
