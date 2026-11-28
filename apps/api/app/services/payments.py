@@ -41,6 +41,10 @@ logger = logging.getLogger(__name__)
 MAX_PAYMENT_RESERVATION_HOURS = 24
 EXPIRED_ORDERS_BATCH = 20
 
+# ЮKassa ограничивает description 128 символами. С префиксом укладываемся в лимит.
+PRODUCT_NAME_LIMIT = 100
+PRODUCT_NAME_PREFIX = "Индивидуальный урок: "
+
 # Официальный список адресов, с которых ЮKassa присылает HTTP-уведомления.
 YOOKASSA_WEBHOOK_NETWORKS = tuple(
     ipaddress.ip_network(value)
@@ -66,6 +70,12 @@ class PromoCodeError(Exception):
 
 class PriceNotSetError(PaymentError):
     pass
+
+
+def payment_product_name(order: PurchaseOrder, offer: IndividualLessonOffer) -> str:
+    """Название товара для платёжки: из снапшота заказа, без лишних пробелов."""
+    title = order.offer_title or offer.title
+    return " ".join(title.split())[:PRODUCT_NAME_LIMIT].rstrip()
 
 
 def discount_amounts(price_minor: int, percent: Decimal) -> tuple[int, int]:
@@ -142,7 +152,7 @@ def _prodamus_payment_url(
         ),
         "products": [
             {
-                "name": f"Индивидуальный урок: {offer.title}",
+                "name": f"{PRODUCT_NAME_PREFIX}{payment_product_name(order, offer)}",
                 "sku": str(offer.id),
                 "price": amount,
                 "quantity": "1",
@@ -264,6 +274,13 @@ async def _apply_paid_order(session: AsyncSession, order: PurchaseOrder) -> None
 
     now = datetime.now(UTC)
     offer = order.offer
+    # Старые заказы без снапшота продолжают работать с живым тарифом.
+    lessons_count = order.lessons_count or offer.lessons_count
+    snapshot_validity = order.validity_days
+    validity_days = (
+        offer.validity_days if snapshot_validity is None else snapshot_validity or None
+    )
+    duration_minutes = order.duration_minutes or offer.duration_minutes
     slot = await session.scalar(
         select(LessonSlot).where(LessonSlot.id == order.slot_id).with_for_update()
     )
@@ -281,7 +298,7 @@ async def _apply_paid_order(session: AsyncSession, order: PurchaseOrder) -> None
         and slot.status
         in {LessonSlotStatus.FREE.value, LessonSlotStatus.BLOCKED.value}
         and _as_utc(slot.starts_at) > now
-        and slot.duration_minutes == offer.duration_minutes
+        and slot.duration_minutes == duration_minutes
     )
     if can_book:
         booked_days = await lessons.booked_day_keys(session, user)
@@ -291,12 +308,10 @@ async def _apply_paid_order(session: AsyncSession, order: PurchaseOrder) -> None
     package = LessonPackage(
         user_id=user.id,
         offer_id=offer.id,
-        total_lessons=offer.lessons_count,
-        remaining_lessons=offer.lessons_count,
+        total_lessons=lessons_count,
+        remaining_lessons=lessons_count,
         status=LessonPackageStatus.ACTIVE.value,
-        expires_at=(
-            now + timedelta(days=offer.validity_days) if offer.validity_days else None
-        ),
+        expires_at=now + timedelta(days=validity_days) if validity_days else None,
     )
     session.add(package)
     await session.flush()
@@ -476,6 +491,11 @@ async def create_purchase_payment(
         price_minor=offer.price_minor,
         discount_minor=discount_minor,
         total_minor=total_minor,
+        currency=offer.currency,
+        offer_title=offer.title,
+        lessons_count=offer.lessons_count,
+        validity_days=offer.validity_days or 0,
+        duration_minutes=offer.duration_minutes,
         provider=provider.value,
         status=PurchaseOrderStatus.PENDING.value,
         expires_at=now + timedelta(minutes=settings.payment_reservation_minutes),
@@ -498,7 +518,7 @@ async def create_purchase_payment(
                 "/payments",
                 body={
                     "amount": {
-                        "value": f"{total_minor / 100:.2f}",
+                        "value": f"{Decimal(total_minor) / Decimal(100):.2f}",
                         "currency": order.currency,
                     },
                     "capture": True,
@@ -508,7 +528,9 @@ async def create_purchase_payment(
                             f"{settings.yookassa_return_url}/payment/success?order_id={order.id}"
                         ),
                     },
-                    "description": f"Индивидуальный урок: {offer.title}",
+                    "description": (
+                        f"{PRODUCT_NAME_PREFIX}{payment_product_name(order, offer)}"
+                    ),
                     "metadata": {"order_id": str(order.id)},
                 },
                 idempotence_key=str(order.id),
